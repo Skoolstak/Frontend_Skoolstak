@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#1f3f3a"/>
+  <title>EduManage — Offline</title>
+  <style>
+    :root {
+      --bg-canvas: #f4efe7;
+      --bg-surface: rgba(255,255,255,0.92);
+      --line-soft: rgba(108,85,61,0.14);
+      --text-strong: #201913;
+      --text-body: #5b4c40;
+      --text-soft: #8d7d70;
+      --brand-1: #0f766e;
+      --brand-2: #d97706;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at top left, rgba(15, 118, 110, 0.10), transparent 28%),
+        radial-gradient(circle at top right, rgba(217, 119, 6, 0.10), transparent 22%),
+        linear-gradient(180deg, #f8f4ee 0%, var(--bg-canvas) 100%);
+      color: var(--text-strong);
+    }
+
+    .card {
+      width: 100%;
+      max-width: 460px;
+      padding: 36px 32px;
+      border-radius: 28px;
+      background: var(--bg-surface);
+      border: 1px solid var(--line-soft);
+      box-shadow: 0 18px 45px rgba(48, 33, 20, 0.12);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .brand-mark {
+      width: 56px;
+      height: 56px;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--brand-1), var(--brand-2));
+      box-shadow: 0 14px 28px rgba(15, 118, 110, 0.18);
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .brand h1 {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .brand p {
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+      font-weight: 700;
+    }
+
+    h2 {
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 12px;
+      letter-spacing: -0.03em;
+    }
+
+    .lead {
+      color: var(--text-body);
+      font-size: 15px;
+      line-height: 1.65;
+      margin-bottom: 22px;
+    }
+
+    .info {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 26px;
+    }
+
+    .info-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.72);
+      border: 1px solid rgba(108,85,61,0.10);
+    }
+
+    .info-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 118, 110, 0.10);
+      color: var(--brand-1);
+      flex-shrink: 0;
+    }
+
+    .info-item strong {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 2px;
+      color: var(--text-strong);
+    }
+
+    .info-item span {
+      color: var(--text-body);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    button {
+      border: none;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--brand-1), #115e59 72%);
+      color: white;
+      box-shadow: 0 10px 24px rgba(15, 118, 110, 0.20);
+    }
+
+    button:hover { filter: brightness(1.02); }
+
+    .status {
+      font-size: 13px;
+      color: var(--text-soft);
+      font-weight: 600;
+    }
+
+    svg { display: block; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 10.5L12 4L20 10.5V20H4V10.5Z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>
+          <path d="M9 20V13H15V20" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>
+          <path d="M7 9H7.01M17 9H17.01" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <h1>EduManage</h1>
+        <p>School Admin</p>
+      </div>
+    </div>
+
+    <h2>You’re offline right now</h2>
+    <p class="lead">EduManage can keep essential school operations moving even when internet access is unstable. Your data stays local and sync resumes automatically once connectivity returns.</p>
+
+    <div class="info">
+      <div class="info-item">
+        <div class="info-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 3V12L17 15" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.9"/>
+          </svg>
+        </div>
+        <div>
+          <strong>Work captured offline</strong>
+          <span>Attendance, grades, and other queued updates can be stored on this device until the connection returns.</span>
+        </div>
+      </div>
+
+      <div class="info-item">
+        <div class="info-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M5 12H9L11 8L13 16L15 12H19" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M4 6.5C6 4.5 8.5 3.5 12 3.5C15.5 3.5 18 4.5 20 6.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+            <path d="M7 9.5C8.5 8.3 10.2 7.7 12 7.7C13.8 7.7 15.5 8.3 17 9.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <strong>Sync resumes automatically</strong>
+          <span>When the network is restored, EduManage will send pending records back to the school system in the background.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button onclick="window.location.reload()">Reconnect and Retry</button>
+      <span class="status">Offline mode is active for this device.</span>
+    </div>
+  </div>
+</body>
+</html>
