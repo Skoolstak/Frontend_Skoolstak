@@ -102,7 +102,7 @@ export default function SuperAdminDashboard() {
     <div>
       <PageHeader
         title="Super Admin"
-        subtitle="Manage all schools on the EduManage platform."
+        subtitle="Manage all schools on the Skoolstak platform."
         action={<button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2"><Plus size={16} /> Add School</button>}
       />
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">

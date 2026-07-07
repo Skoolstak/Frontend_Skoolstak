@@ -4,17 +4,20 @@ import { PageHeader, SelectField, EmptyState } from '../../components/shared';
 import api from '../../services/api';
 
 const DAYS    = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
-const PERIODS = [1,2,3,4,5,6,7,8];
+const PERIODS = [1,2,3,4,5,6,7,8,9,10,11];
 
 const PERIOD_LABELS = {
-  1: '7:30 – 8:15',
-  2: '8:15 – 9:00',
-  3: '9:00 – 9:45',
-  4: '9:45 – 10:30',
-  5: '10:45 – 11:30', // after break
-  6: '11:30 – 12:15',
-  7: '12:15 – 1:00',
-  8: '2:00 – 2:45',
+  1:  '7:30 – 8:15',
+  2:  '8:15 – 9:00',
+  3:  '9:00 – 9:45',
+  4:  '9:45 – 10:30',
+  5:  '10:45 – 11:30', // after morning break
+  6:  '11:30 – 12:15',
+  7:  '12:15 – 1:00',
+  8:  '2:00 – 2:45',   // after lunch
+  9:  '2:45 – 3:30',
+  10: '3:30 – 4:15',
+  11: '4:30 – 6:00',   // afternoon / remedial / extra-curricular
 };
 
 export default function TimetablePage() {

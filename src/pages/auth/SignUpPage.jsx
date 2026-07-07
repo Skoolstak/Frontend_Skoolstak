@@ -90,7 +90,7 @@ export default function SignUpPage() {
           <div className="w-14 h-14 rounded-2xl bg-brand-gold flex items-center justify-center shadow-card mb-4">
             <School className="w-7 h-7 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-charcoal-900">EduManage</h1>
+          <h1 className="text-2xl font-bold text-charcoal-900">Skoolstak</h1>
           <p className="text-sm text-charcoal-500 mt-1">School Management System</p>
         </div>
 
@@ -128,7 +128,7 @@ export default function SignUpPage() {
               </label>
               <div className="flex items-center input-field p-0 overflow-hidden">
                 <span className="px-3 py-2.5 text-charcoal-400 text-sm bg-sand-50 border-r border-charcoal-200 select-none">
-                  edumanage.app/
+                  skoolstak.app/
                 </span>
                 <input
                   id="slug"

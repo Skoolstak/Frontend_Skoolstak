@@ -5,7 +5,7 @@
  * Uses native IndexedDB API (no extra library needed).
  */
 
-const DB_NAME    = 'edumanage-offline';
+const DB_NAME    = 'skoolstak-offline';
 const DB_VERSION = 1;
 
 const STORES = {

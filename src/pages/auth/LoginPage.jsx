@@ -43,7 +43,7 @@ export default function LoginPage() {
           <div className="w-14 h-14 rounded-2xl bg-brand-gold flex items-center justify-center shadow-card mb-4">
             <School className="w-7 h-7 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-charcoal-900">EduManage</h1>
+          <h1 className="text-2xl font-bold text-charcoal-900">Skoolstak</h1>
           <p className="text-sm text-charcoal-500 mt-1">School Management System</p>
         </div>
 
@@ -129,7 +129,7 @@ export default function LoginPage() {
           </Link>
         </p>
         <p className="text-center text-xs text-charcoal-400 mt-2">
-          &copy; {new Date().getFullYear()} EduManage &middot; Built for Ghana 🇬🇭 and Africa.
+          &copy; {new Date().getFullYear()} Skoolstak &middot; Built for Ghana 🇬🇭 and Africa.
         </p>
       </div>
     </div>

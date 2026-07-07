@@ -98,7 +98,7 @@ export default function AdminLayout({ children, role }) {
               <School className="h-6 w-6 text-white" strokeWidth={2.3}/>
             </div>
             <div>
-              <p className="text-[1.05rem] font-extrabold leading-none tracking-[-0.05em] text-[var(--text-strong)]">EduManage</p>
+              <p className="text-[1.3rem] font-extrabold leading-none tracking-[-0.05em] text-[var(--text-strong)]">Skoolstak</p>
               <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-soft)]">{ROLE_LABEL[role] || role}</p>
             </div>
           </div>

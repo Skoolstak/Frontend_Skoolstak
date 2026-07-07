@@ -12,7 +12,7 @@ const supabaseUrl = isValidUrl(rawUrl) ? rawUrl : 'https://placeholder.supabase.
 const supabaseAnonKey = rawKey.length > 20 ? rawKey : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder';
 
 if (!isValidUrl(rawUrl)) {
-  console.warn('[EduManage] REACT_APP_SUPABASE_URL is not set or invalid. Auth will not work until you add your Supabase project URL to client/.env');
+  console.warn('[Skoolstak] REACT_APP_SUPABASE_URL is not set or invalid. Auth will not work until you add your Supabase project URL to client/.env');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);

@@ -4,7 +4,8 @@ import { PageHeader, EmptyState, TermSelector, Spinner } from '../../components/
 import api from '../../services/api';
 
 const DAYS    = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
-const PERIODS = ['Period 1','Period 2','Period 3','Period 4','Period 5','Period 6','Period 7','Period 8'];
+const PERIODS = ['Period 1','Period 2','Period 3','Period 4','Period 5','Period 6','Period 7','Period 8','Period 9','Period 10','Period 11'];
+const PERIOD_TIMES = ['7:30–8:15','8:15–9:00','9:00–9:45','9:45–10:30','10:45–11:30','11:30–12:15','12:15–1:00','2:00–2:45','2:45–3:30','3:30–4:15','4:30–6:00'];
 
 export default function StudentTimetable() {
   const [term,    setTerm]    = useState({ term:1, year: new Date().getFullYear() });
@@ -45,7 +46,10 @@ export default function StudentTimetable() {
             <tbody>
               {PERIODS.map((period, pi) => (
                 <tr key={period} className={pi%2===0?'bg-sand-50':''}>
-                  <td className="py-3 pr-4 text-xs text-charcoal-500 font-medium">{period}</td>
+                  <td className="py-3 pr-4 text-xs font-medium whitespace-nowrap">
+                    <span className="font-semibold text-charcoal-700">{period}</span>
+                    <br/><span className="text-charcoal-400">{PERIOD_TIMES[pi]}</span>
+                  </td>
                   {DAYS.map(day => {
                     const slot = getSlot(day, pi+1);
                     return (

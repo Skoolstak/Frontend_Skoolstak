@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Plus, TrendingUp, TrendingDown, DollarSign, Upload, X, ImageIcon } from 'lucide-react';
 import {
   PageHeader, Table, TableSkeleton, StatusBadge, GHSAmount,
   Modal, FormField, SelectField, TermSelector, StatCard,
 } from '../../components/shared';
 import api from '../../services/api';
+import { supabase } from '../../services/supabase';
 
 /* ────────────── FEE TYPES TAB ────────────── */
 function FeeTypesTab() {
@@ -55,6 +56,83 @@ function FeeTypesTab() {
   );
 }
 
+/* ────────────── STUDENT SEARCH COMBOBOX ────────────── */
+function StudentCombobox({ students, value, onChange }) {
+  const [query,  setQuery]  = useState('');
+  const [open,   setOpen]   = useState(false);
+  const [active, setActive] = useState(0);
+  const ref = React.useRef(null);
+
+  const selected = students.find(s => s.id === value);
+  const filtered = query.trim().length === 0 ? [] : students.filter(s =>
+    `${s.first_name} ${s.last_name}`.toLowerCase().includes(query.trim().toLowerCase()) ||
+    (s.student_id_number || '').toLowerCase().includes(query.trim().toLowerCase())
+  ).slice(0, 12);
+
+  // Close on outside click
+  React.useEffect(() => {
+    function handler(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  function handleKey(e) {
+    if (!open || filtered.length === 0) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); setActive(i => Math.min(i + 1, filtered.length - 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(i => Math.max(i - 1, 0)); }
+    else if (e.key === 'Enter') { e.preventDefault(); pick(filtered[active]); }
+    else if (e.key === 'Escape') setOpen(false);
+  }
+
+  function pick(s) {
+    onChange(s.id);
+    setQuery(`${s.first_name} ${s.last_name}`);
+    setOpen(false);
+    setActive(0);
+  }
+
+  function handleInput(e) {
+    setQuery(e.target.value);
+    onChange('');
+    setOpen(true);
+    setActive(0);
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        className="input-field w-full"
+        placeholder="Type a student name or ID…"
+        value={selected && !open ? `${selected.first_name} ${selected.last_name}` : query}
+        onChange={handleInput}
+        onFocus={() => { if (query.trim()) setOpen(true); }}
+        onKeyDown={handleKey}
+        autoComplete="off"
+      />
+      {open && filtered.length > 0 && (
+        <ul className="absolute z-50 mt-1 w-full rounded-2xl border border-[rgba(108,85,61,0.14)] bg-white shadow-[0_12px_32px_rgba(48,33,20,0.12)] overflow-hidden">
+          {filtered.map((s, i) => (
+            <li
+              key={s.id}
+              className={`flex items-center justify-between px-4 py-2.5 cursor-pointer text-sm transition-colors ${i === active ? 'bg-[rgba(15,118,110,0.08)] text-[var(--text-strong)]' : 'hover:bg-sand-50 text-[var(--text-body)]'}`}
+              onMouseDown={() => pick(s)}
+              onMouseEnter={() => setActive(i)}
+            >
+              <span className="font-medium">{s.first_name} {s.last_name}</span>
+              <span className="text-xs text-[var(--text-soft)]">{s.class_name || s.student_id_number || ''}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {open && query.trim().length > 0 && filtered.length === 0 && (
+        <div className="absolute z-50 mt-1 w-full rounded-2xl border border-[rgba(108,85,61,0.14)] bg-white px-4 py-3 text-sm text-[var(--text-soft)] shadow-lg">
+          No students found for "{query}"
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ────────────── INVOICES TAB ────────────── */
 function InvoicesTab() {
   const [invoices, setInvoices] = useState([]);
@@ -63,10 +141,40 @@ function InvoicesTab() {
   const [term,     setTerm]     = useState('');
   const [loading,  setLoading]  = useState(true);
   const [modal,    setModal]    = useState(false);
-  const [payModal, setPayModal] = useState(null);
-  const [form,     setForm]     = useState({ student_id:'', fee_type_id:'', due_date:'', amount:'' });
-  const [payForm,  setPayForm]  = useState({ amount:'', method:'cash', reference:'' });
-  const [saving,   setSaving]   = useState(false);
+  const [payModal,    setPayModal]    = useState(null);
+  const [form,        setForm]        = useState({ student_id:'', fee_type_id:'', due_date:'', amount:'' });
+  const [payForm,     setPayForm]     = useState({ amount:'', method:'mtn_momo', reference:'' });
+  const [saving,      setSaving]      = useState(false);
+  const [payDone,     setPayDone]     = useState(null);
+  const [receiptFile, setReceiptFile] = useState(null);   // File object
+  const [receiptPreview, setReceiptPreview] = useState(null); // object URL
+  const [uploadErr,   setUploadErr]   = useState('');
+  const fileInputRef = useRef(null);
+
+  function handleReceiptPick(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      setUploadErr('Please select an image (JPG, PNG) or PDF file.'); return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadErr('File must be under 5 MB.'); return;
+    }
+    setUploadErr('');
+    setReceiptFile(file);
+    if (file.type.startsWith('image/')) {
+      setReceiptPreview(URL.createObjectURL(file));
+    } else {
+      setReceiptPreview(null); // PDF — no preview, just show filename
+    }
+  }
+
+  function clearReceipt() {
+    setReceiptFile(null);
+    setReceiptPreview(null);
+    setUploadErr('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
 
   useEffect(() => {
     const y = new Date().getFullYear(), m = new Date().getMonth();
@@ -86,9 +194,33 @@ function InvoicesTab() {
     catch(err){console.error(err);} finally{setSaving(false);}
   }
   async function handlePay(e) {
-    e.preventDefault(); setSaving(true);
-    try { await api.post(`/finance/invoices/${payModal.id}/pay`, payForm); loadInvoices(); setPayModal(null); setPayForm({amount:'',method:'cash',reference:''}); }
-    catch(err){console.error(err);} finally{setSaving(false);}
+    e.preventDefault(); setSaving(true); setUploadErr('');
+    try {
+      let receiptUrl = payForm.reference;
+
+      // Upload receipt image to Supabase Storage if one was selected
+      if (receiptFile) {
+        const ext  = receiptFile.name.split('.').pop();
+        const path = `receipts/${payModal.id}-${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from('receipts')
+          .upload(path, receiptFile, { upsert: true });
+        if (upErr) {
+          setUploadErr(`Upload failed: ${upErr.message}`);
+          setSaving(false); return;
+        }
+        const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(path);
+        receiptUrl = urlData?.publicUrl || path;
+      }
+
+      await api.post(`/finance/invoices/${payModal.id}/pay`, { ...payForm, reference: receiptUrl });
+      setPayDone({ student_name: payModal.student_name, amount: payForm.amount, reference: receiptUrl, method: payForm.method });
+      loadInvoices();
+      setPayModal(null);
+      setPayForm({ amount:'', method:'mtn_momo', reference:'' });
+      clearReceipt();
+    }
+    catch(err){ console.error(err); } finally { setSaving(false); }
   }
 
   const columns = [
@@ -98,7 +230,7 @@ function InvoicesTab() {
     { key:'due_date',     label:'Due Date',  render: r => new Date(r.due_date).toLocaleDateString('en-GH') },
     { key:'status',       label:'Status',    render: r => <StatusBadge status={r.status} /> },
     { key:'actions',      label:'', render: r => r.status !== 'paid' && (
-      <button onClick={() => { setPayModal(r); setPayForm({amount:r.amount,method:'cash',reference:''}); }} className="text-xs text-brand-gold hover:underline font-medium">Record Payment</button>
+      <button onClick={() => { setPayModal(r); setPayForm({amount: String(Number(r.amount) - Number(r.amount_paid||0)), method:'mtn_momo', reference:''}); }} className="text-xs text-brand-gold hover:underline font-medium">Record Payment</button>
     )},
   ];
 
@@ -111,11 +243,10 @@ function InvoicesTab() {
       {loading ? <TableSkeleton rows={6} cols={5}/> : <Table columns={columns} data={invoices} emptyMessage="No invoices for this term." />}
 
       {/* Create invoice */}
-      <Modal open={modal} onClose={() => setModal(false)} title="Create Fee Invoice">
+      <Modal open={modal} onClose={() => { setModal(false); setForm({ student_id:'', fee_type_id:'', due_date:'', amount:'' }); }} title="Create Fee Invoice">
         <form onSubmit={handleCreateInvoice} className="space-y-4">
           <FormField label="Student" required>
-            <SelectField value={form.student_id} onChange={e=>set('student_id',e.target.value)}
-              options={students.map(s=>({value:s.id,label:`${s.first_name} ${s.last_name}`}))} placeholder="Select student…"/>
+            <StudentCombobox students={students} value={form.student_id} onChange={v => set('student_id', v)}/>
           </FormField>
           <FormField label="Fee Type" required>
             <SelectField value={form.fee_type_id} onChange={e=>{ const ft=feeTypes.find(f=>f.id===e.target.value); set('fee_type_id',e.target.value); if(ft) set('amount',ft.amount); }}
@@ -130,28 +261,113 @@ function InvoicesTab() {
         </form>
       </Modal>
 
+      {/* Receipt confirmation toast */}
+      {payDone && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 px-5 py-4 shadow-xl max-w-sm">
+          <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-green-500 text-white text-lg font-bold">✓</div>
+          <div>
+            <p className="font-semibold text-green-800">Payment recorded — Marked as Paid</p>
+            <p className="mt-0.5 text-sm text-green-700">{payDone.student_name} · ₵{Number(payDone.amount).toLocaleString()}</p>
+            {payDone.reference && <p className="mt-0.5 text-xs text-green-600 font-mono">Ref: {payDone.reference}</p>}
+          </div>
+          <button onClick={() => setPayDone(null)} className="ml-auto text-green-500 hover:text-green-700 text-lg leading-none">×</button>
+        </div>
+      )}
+
       {/* Record payment */}
-      <Modal open={!!payModal} onClose={() => setPayModal(null)} title="Record Payment" size="sm">
-        <p className="text-sm text-charcoal-600 mb-4">
-          Student: <strong>{payModal?.student_name}</strong><br/>
-          Fee: <strong>{payModal?.fee_type_name}</strong> — <GHSAmount amount={payModal?.amount} className="font-bold"/>
-        </p>
+      <Modal open={!!payModal} onClose={() => setPayModal(null)} title="Record MoMo / Fee Payment" size="sm">
+        {/* Invoice summary */}
+        <div className="mb-5 rounded-xl border border-[rgba(108,85,61,0.12)] bg-[rgba(15,118,110,0.04)] px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-soft)] mb-1">Invoice</p>
+          <p className="font-semibold text-[var(--text-strong)]">{payModal?.student_name}</p>
+          <p className="text-sm text-[var(--text-body)]">{payModal?.fee_type_name}</p>
+          <p className="mt-1 text-xl font-extrabold tracking-tight text-[var(--brand-1)]">
+            ₵{Number(payModal?.amount).toLocaleString()} <span className="text-xs font-medium text-[var(--text-soft)]">total due</span>
+          </p>
+        </div>
+
         <form onSubmit={handlePay} className="space-y-4">
-          <FormField label="Amount Paid (₵)" required><input className="input-field" type="number" step="0.01" value={payForm.amount} onChange={e=>setPayForm(f=>({...f,amount:e.target.value}))} required/></FormField>
-          <FormField label="Payment Method">
-            <SelectField value={payForm.method} onChange={e=>setPayForm(f=>({...f,method:e.target.value}))}
+          <FormField label="Payment Method" required>
+            <SelectField value={payForm.method} onChange={e => setPayForm(f => ({...f, method: e.target.value}))}
               options={[
-                {value:'cash',label:'Cash'},
-                {value:'mtn_momo',label:'MTN MoMo'},
-                {value:'vodafone_cash',label:'Vodafone Cash'},
-                {value:'airteltigo_money',label:'AirtelTigo Money'},
-                {value:'bank',label:'Bank Transfer'},
+                {value:'mtn_momo',         label:'MTN MoMo'},
+                {value:'vodafone_cash',    label:'Vodafone Cash'},
+                {value:'airteltigo_money', label:'AirtelTigo Money'},
+                {value:'bank',             label:'Bank Transfer'},
+                {value:'cash',             label:'Cash'},
               ]}/>
           </FormField>
-          <FormField label="Reference / Transaction ID"><input className="input-field" value={payForm.reference} onChange={e=>setPayForm(f=>({...f,reference:e.target.value}))} placeholder="Optional"/></FormField>
+
+          <FormField label="Receipt / Transaction Reference">
+            <input
+              className="input-field font-mono"
+              placeholder={payForm.method === 'cash' ? 'Receipt number (optional)' : 'Transaction ID or receipt number'}
+              value={payForm.reference}
+              onChange={e => setPayForm(f => ({...f, reference: e.target.value}))}
+            />
+            <p className="mt-1 text-xs text-[var(--text-soft)]">
+              {['mtn_momo','vodafone_cash','airteltigo_money'].includes(payForm.method)
+                ? 'Enter the MoMo transaction ID shown on the student\'s confirmation SMS or screenshot.'
+                : payForm.method === 'bank'
+                  ? 'Enter the bank teller or transfer reference number.'
+                  : 'Enter a cash receipt number if one was issued.'}
+            </p>
+          </FormField>
+
+          {/* Receipt image upload */}
+          <FormField label="Receipt Image *">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,application/pdf"
+              className="hidden"
+              onChange={handleReceiptPick}
+            />
+            {!receiptFile ? (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[var(--line-soft)] bg-[rgba(255,255,255,0.6)] px-4 py-4 text-sm font-medium text-[var(--text-body)] transition hover:border-[var(--brand-1)] hover:text-[var(--brand-1)]"
+              >
+                <Upload size={16}/> Click to attach receipt photo or PDF
+              </button>
+            ) : (
+              <div className="relative rounded-xl border border-[rgba(15,118,110,0.24)] bg-[rgba(15,118,110,0.04)] overflow-hidden">
+                {receiptPreview ? (
+                  <img src={receiptPreview} alt="Receipt preview" className="w-full max-h-40 object-contain bg-white"/>
+                ) : (
+                  <div className="flex items-center gap-2 px-4 py-3">
+                    <ImageIcon size={18} className="text-[var(--brand-1)]"/>
+                    <span className="text-sm font-medium text-[var(--text-strong)] truncate">{receiptFile.name}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between px-3 py-2 bg-[rgba(15,118,110,0.06)]">
+                  <span className="text-xs text-[var(--text-soft)]">{receiptFile.name} &middot; {(receiptFile.size/1024).toFixed(0)} KB</span>
+                  <button type="button" onClick={clearReceipt} className="text-[var(--text-soft)] hover:text-red-500 transition-colors"><X size={15}/></button>
+                </div>
+              </div>
+            )}
+            {uploadErr && <p className="mt-1 text-xs text-red-600">{uploadErr}</p>}
+            {!receiptFile && <p className="mt-1 text-xs text-red-500 font-medium">A receipt image or PDF is required to confirm payment.</p>}
+            <p className="mt-1 text-xs text-[var(--text-soft)]">JPG, PNG or PDF &middot; max 5 MB. Saved permanently with this payment record.</p>
+          </FormField>
+
+          <FormField label="Amount Paid (₵)" required>
+            <input className="input-field" type="number" step="0.01" value={payForm.amount} onChange={e => setPayForm(f => ({...f, amount: e.target.value}))} required/>
+            <p className="mt-1 text-xs text-[var(--text-soft)]">Pre-filled to the outstanding balance. Adjust for partial payments.</p>
+          </FormField>
+
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setPayModal(null)} className="btn-secondary">Cancel</button>
-            <button type="submit" disabled={saving} className="btn-primary">Confirm Payment</button>
+            <button
+              type="submit"
+              disabled={saving || !receiptFile}
+              title={!receiptFile ? 'Upload a receipt first' : ''}
+              className="btn-primary flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {saving && <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"/>}
+              Confirm &amp; Mark Paid
+            </button>
           </div>
         </form>
       </Modal>

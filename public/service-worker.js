@@ -1,13 +1,13 @@
 /* ============================================================
-   EduManage Service Worker v2
+   Skoolstak Service Worker v2
    Handles: App shell caching, API response caching (read-only),
             Offline queue for attendance, grades, payments
    ============================================================ */
 
 // Bump version string to force cache refresh on all clients
 const SW_VERSION    = 'v2';
-const CACHE_NAME    = `edumanage-shell-${SW_VERSION}`;
-const RUNTIME_CACHE = `edumanage-runtime-${SW_VERSION}`;
+const CACHE_NAME    = `skoolstak-shell-${SW_VERSION}`;
+const RUNTIME_CACHE = `skoolstak-runtime-${SW_VERSION}`;
 
 // How long API responses stay fresh (seconds)
 const API_TTL = {
@@ -165,7 +165,7 @@ async function notifyClientsToSync() {
 self.addEventListener('push', event => {
   const data = event.data?.json() || {};
   event.waitUntil(
-    self.registration.showNotification(data.title || 'EduManage', {
+    self.registration.showNotification(data.title || 'Skoolstak', {
       body:  data.body  || '',
       icon:  '/logo192.png',
       badge: '/logo192.png',
@@ -290,7 +290,7 @@ async function notifyClientsToSync() {
 self.addEventListener('push', event => {
   const data = event.data?.json() || {};
   event.waitUntil(
-    self.registration.showNotification(data.title || 'EduManage', {
+    self.registration.showNotification(data.title || 'Skoolstak', {
       body:  data.body  || '',
       icon:  '/icon-192.png',
       badge: '/icon-192.png',
