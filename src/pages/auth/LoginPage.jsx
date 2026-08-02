@@ -4,6 +4,7 @@ import { useAuth } from '../../store/AuthContext';
 import { ROLE_HOME } from '../../utils/ProtectedRoute';
 import { Eye, EyeOff, School } from 'lucide-react';
 import api from '../../services/api';
+import { supabase } from '../../services/supabase';
 
 export default function LoginPage() {
   const { signIn, profile } = useAuth();
@@ -55,23 +56,20 @@ export default function LoginPage() {
           localStorage.removeItem('rememberedId');
         }
         
-        // Manual sign-in with session from API
+        // Use Supabase's built-in session management (secure)
         if (res.data.session) {
-          // Store session in localStorage for the Supabase client
-          localStorage.setItem('supabase.auth.token', JSON.stringify({
-            currentSession: res.data.session,
-            expiresAt: res.data.session.expires_at,
-          }));
+          // Let Supabase SDK handle the session securely
+          await supabase.auth.setSession({
+            access_token: res.data.session.access_token,
+            refresh_token: res.data.session.refresh_token,
+          });
           
           // Navigate to appropriate dashboard
           const roleMap = {
             student: '/student/academic-records',
             teacher: '/teacher',
           };
-          setTimeout(() => {
-            navigate(roleMap[res.data.role] || '/admin', { replace: true });
-            window.location.reload(); // Refresh to update auth context
-          }, 300);
+          navigate(roleMap[res.data.role] || '/admin', { replace: true });
         }
       } else {
         // Email-based login (school admins)
