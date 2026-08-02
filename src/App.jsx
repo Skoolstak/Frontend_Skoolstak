@@ -8,11 +8,12 @@ import {
 import { AuthProvider } from './store/AuthContext';
 import { ProtectedRoute } from './utils/ProtectedRoute';
 
-// Auth
+// Auth pages
 import LoginPage  from './pages/auth/LoginPage';
 import SignUpPage from './pages/auth/SignUpPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from './pages/auth/ResetPasswordPage';
+import ChangePasswordPage from './pages/auth/ChangePassword';
 
 // Layouts
 import AdminLayout from './components/layout/AdminLayout';
@@ -53,6 +54,16 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/"       element={<Navigate to="/login" replace />} />
+
+          {/* Change Password - Accessible to all authenticated users */}
+          <Route
+            path="/change-password"
+            element={
+              <ProtectedRoute allowedRoles={['super_admin', 'school_admin', 'teacher', 'student']}>
+                <ChangePasswordPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Super Admin */}
           <Route

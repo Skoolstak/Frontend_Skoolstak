@@ -176,6 +176,13 @@ export default function LoginPage() {
                 <p className="text-xs text-charcoal-400 mt-1">
                   Your ID can be found on your student/staff card
                 </p>
+                
+                {/* First-time login notice */}
+                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                  <p className="text-xs text-blue-900">
+                    <span className="font-semibold">First time logging in?</span> Your initial password is your ID (e.g., STU-2026-001). You'll be able to change it after logging in.
+                  </p>
+                </div>
               </div>
             )}
 

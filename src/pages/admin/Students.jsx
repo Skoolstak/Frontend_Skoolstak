@@ -14,10 +14,55 @@ const GRADE_COLORS = {
   F9: 'bg-red-200 text-red-900',
 };
 
-function StudentForm({ form, setForm, classes }) {
+function StudentForm({ form, setForm, classes, photoFile, setPhotoFile, photoPreview, setPhotoPreview, photoError, setPhotoError }) {
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
+  
+  function handlePhotoSelect(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.size > 2 * 1024 * 1024) {
+      setPhotoError('File size must be less than 2MB');
+      return;
+    }
+    
+    setPhotoFile(file);
+    setPhotoError('');
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPhotoPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  }
+  
   return (
     <div className="space-y-4">
+      {/* Photo Upload Section */}
+      <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-teal-50 to-blue-50 border-2 border-teal-200 rounded-xl">
+        <div className="flex-shrink-0">
+          {photoPreview ? (
+            <img src={photoPreview} alt="Preview" className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-sm" />
+          ) : (
+            <div className="w-24 h-24 rounded-full bg-sand-200 flex items-center justify-center border-4 border-white shadow-sm">
+              <Camera size={32} className="text-sand-400" />
+            </div>
+          )}
+        </div>
+        <div className="flex-1">
+          <FormField label="Student Photo (Optional)">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoSelect}
+              className="block w-full text-sm text-charcoal-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-500 file:text-white hover:file:bg-teal-600 file:cursor-pointer cursor-pointer"
+            />
+          </FormField>
+          {photoError && <p className="text-xs text-red-600 mt-1">{photoError}</p>}
+          <p className="text-xs text-charcoal-500 mt-1">Max 2MB • JPG, PNG</p>
+        </div>
+      </div>
+      
       <div className="grid grid-cols-2 gap-4">
         <FormField label="First Name" required><input className="input-field" value={form.first_name} onChange={e => set('first_name', e.target.value)} required /></FormField>
         <FormField label="Last Name" required><input className="input-field" value={form.last_name} onChange={e => set('last_name', e.target.value)} required /></FormField>
@@ -59,11 +104,15 @@ export default function StudentsPage() {
   const [gradSaving,  setGradSaving]  = useState(false);
   const [gradYear,    setGradYear]    = useState(String(new Date().getFullYear()));
   // Photo upload
-  const [photoModal, setPhotoModal] = useState(null); // student obj
-  const [photoFile, setPhotoFile] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState('');
+  const [photoModal, setPhotoModal] = useState(null); // student obj for existing photo upload
+  const [photoFile, setPhotoFile] = useState(null); // for both new and existing
+  const [photoPreview, setPhotoPreview] = useState(''); // for both new and existing
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoError, setPhotoError] = useState('');
+  // New student form photo states (separate from photoModal)
+  const [formPhotoFile, setFormPhotoFile] = useState(null);
+  const [formPhotoPreview, setFormPhotoPreview] = useState('');
+  const [formPhotoError, setFormPhotoError] = useState('');
   // Excel import
   const [excelModal, setExcelModal] = useState(false);
   const [excelFile, setExcelFile] = useState(null);
@@ -81,8 +130,8 @@ export default function StudentsPage() {
     } catch(e) { console.error(e); } finally { setLoading(false); }
   }
 
-  function openAdd()   { setForm(EMPTY); setModal('add'); setError(''); }
-  function openEdit(s) { setForm({ first_name: s.first_name, last_name: s.last_name, dob: s.dob?.split('T')[0]||'', class_id: s.class_id||'', status: s.status }); setModal(s); setError(''); }
+  function openAdd()   { setForm(EMPTY); setModal('add'); setError(''); setFormPhotoFile(null); setFormPhotoPreview(''); setFormPhotoError(''); }
+  function openEdit(s) { setForm({ first_name: s.first_name, last_name: s.last_name, dob: s.dob?.split('T')[0]||'', class_id: s.class_id||'', status: s.status }); setModal(s); setError(''); setFormPhotoFile(null); setFormPhotoPreview(s.photo_url || ''); setFormPhotoError(''); }
 
   async function openHistory(student) {
     setHistModal(student); setHistLoading(true); setHistory([]); setExpandedTerm(null);
@@ -110,11 +159,41 @@ export default function StudentsPage() {
   async function handleSave(e) {
     e.preventDefault(); setError(''); setSaving(true);
     try {
-      if (modal === 'add') await api.post('/students', form);
-      else await api.put(`/students/${modal.id}`, form);
-      load(); setModal(null);
-    } catch(err) { setError(err.response?.data?.error || 'Failed to save student.'); }
-    finally { setSaving(false); }
+      let studentId;
+      
+      // Create or update student
+      if (modal === 'add') {
+        const res = await api.post('/students', form);
+        studentId = res.data.student.id;
+      } else {
+        await api.put(`/students/${modal.id}`, form);
+        studentId = modal.id;
+      }
+      
+      // Upload photo if provided
+      if (formPhotoFile && studentId) {
+        const reader = new FileReader();
+        await new Promise((resolve, reject) => {
+          reader.onloadend = async () => {
+            try {
+              await api.post(`/upload/student-photo/${studentId}`, { file: reader.result });
+              resolve();
+            } catch (err) {
+              reject(err);
+            }
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(formPhotoFile);
+        });
+      }
+      
+      load(); 
+      setModal(null);
+    } catch(err) { 
+      setError(err.response?.data?.error || 'Failed to save student.'); 
+    } finally { 
+      setSaving(false); 
+    }
   }
 
   async function handleDelete(id) {
@@ -283,7 +362,17 @@ export default function StudentsPage() {
       <Modal open={!!modal} onClose={() => setModal(null)} title={modal === 'add' ? 'Enroll New Student' : 'Edit Student'}>
         {error && <p className="text-sm text-danger bg-red-50 px-4 py-2 rounded-xl mb-4">{error}</p>}
         <form onSubmit={handleSave}>
-          <StudentForm form={form} setForm={setForm} classes={classes} />
+          <StudentForm 
+            form={form} 
+            setForm={setForm} 
+            classes={classes}
+            photoFile={formPhotoFile}
+            setPhotoFile={setFormPhotoFile}
+            photoPreview={formPhotoPreview}
+            setPhotoPreview={setFormPhotoPreview}
+            photoError={formPhotoError}
+            setPhotoError={setFormPhotoError}
+          />
           <div className="flex justify-end gap-3 mt-6">
             <button type="button" onClick={() => setModal(null)} className="btn-secondary">Cancel</button>
             <button type="submit" disabled={saving} className="btn-primary flex items-center gap-2">

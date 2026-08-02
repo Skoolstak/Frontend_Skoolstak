@@ -18,11 +18,15 @@ export default function StaffPage() {
   const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState('');
   // Photo upload
-  const [photoModal, setPhotoModal] = useState(null);
-  const [photoFile, setPhotoFile] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState('');
+  const [photoModal, setPhotoModal] = useState(null); // for existing photo upload
+  const [photoFile, setPhotoFile] = useState(null); // for both new and existing
+  const [photoPreview, setPhotoPreview] = useState(''); // for both new and existing
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoError, setPhotoError] = useState('');
+  // New staff form photo states (separate from photoModal)
+  const [formPhotoFile, setFormPhotoFile] = useState(null);
+  const [formPhotoPreview, setFormPhotoPreview] = useState('');
+  const [formPhotoError, setFormPhotoError] = useState('');
   // Excel import
   const [excelModal, setExcelModal] = useState(false);
   const [excelFile, setExcelFile] = useState(null);
@@ -38,17 +42,67 @@ export default function StaffPage() {
   }
 
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
-  function openAdd()   { setForm(EMPTY); setModal('add'); setError(''); }
-  function openEdit(s) { setForm({ first_name: s.first_name, last_name: s.last_name, phone: s.phone||'', email: s.email||'', department: s.department||'', designation: s.designation||'', role: s.role||'teacher' }); setModal(s); setError(''); }
+  
+  function handleFormPhotoSelect(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.size > 2 * 1024 * 1024) {
+      setFormPhotoError('File size must be less than 2MB');
+      return;
+    }
+    
+    setFormPhotoFile(file);
+    setFormPhotoError('');
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormPhotoPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  }
+  
+  function openAdd()   { setForm(EMPTY); setModal('add'); setError(''); setFormPhotoFile(null); setFormPhotoPreview(''); setFormPhotoError(''); }
+  function openEdit(s) { setForm({ first_name: s.first_name, last_name: s.last_name, phone: s.phone||'', email: s.email||'', department: s.department||'', designation: s.designation||'', role: s.role||'teacher' }); setModal(s); setError(''); setFormPhotoFile(null); setFormPhotoPreview(s.photo_url || ''); setFormPhotoError(''); }
 
   async function handleSave(e) {
     e.preventDefault(); setError(''); setSaving(true);
     try {
-      if (modal === 'add') await api.post('/staff', form);
-      else await api.put(`/staff/${modal.id}`, form);
-      load(); setModal(null);
-    } catch(err) { setError(err.response?.data?.error || 'Failed to save staff member.'); }
-    finally { setSaving(false); }
+      let staffId;
+      
+      // Create or update staff
+      if (modal === 'add') {
+        const res = await api.post('/staff', form);
+        staffId = res.data.staff.id;
+      } else {
+        await api.put(`/staff/${modal.id}`, form);
+        staffId = modal.id;
+      }
+      
+      // Upload photo if provided
+      if (formPhotoFile && staffId) {
+        const reader = new FileReader();
+        await new Promise((resolve, reject) => {
+          reader.onloadend = async () => {
+            try {
+              await api.post(`/upload/staff-photo/${staffId}`, { file: reader.result });
+              resolve();
+            } catch (err) {
+              reject(err);
+            }
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(formPhotoFile);
+        });
+      }
+      
+      load(); 
+      setModal(null);
+    } catch(err) { 
+      setError(err.response?.data?.error || 'Failed to save staff member.'); 
+    } finally { 
+      setSaving(false); 
+    }
   }
 
   async function handleDelete(id) {
@@ -206,6 +260,31 @@ export default function StaffPage() {
       <Modal open={!!modal} onClose={() => setModal(null)} title={modal === 'add' ? 'Add Staff Member' : 'Edit Staff Member'}>
         {error && <p className="text-sm text-danger bg-red-50 px-4 py-2 rounded-xl mb-4">{error}</p>}
         <form onSubmit={handleSave} className="space-y-4">
+          {/* Photo Upload Section */}
+          <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-orange-50 to-amber-50 border-2 border-orange-200 rounded-xl">
+            <div className="flex-shrink-0">
+              {formPhotoPreview ? (
+                <img src={formPhotoPreview} alt="Preview" className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-sm" />
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-sand-200 flex items-center justify-center border-4 border-white shadow-sm">
+                  <Camera size={32} className="text-sand-400" />
+                </div>
+              )}
+            </div>
+            <div className="flex-1">
+              <FormField label="Staff Photo (Optional)">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFormPhotoSelect}
+                  className="block w-full text-sm text-charcoal-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-500 file:text-white hover:file:bg-orange-600 file:cursor-pointer cursor-pointer"
+                />
+              </FormField>
+              {formPhotoError && <p className="text-xs text-red-600 mt-1">{formPhotoError}</p>}
+              <p className="text-xs text-charcoal-500 mt-1">Max 2MB • JPG, PNG</p>
+            </div>
+          </div>
+          
           <div className="grid grid-cols-2 gap-4">
             <FormField label="First Name" required><input className="input-field" value={form.first_name} onChange={e => set('first_name', e.target.value)} required /></FormField>
             <FormField label="Last Name"  required><input className="input-field" value={form.last_name}  onChange={e => set('last_name',  e.target.value)} required /></FormField>
