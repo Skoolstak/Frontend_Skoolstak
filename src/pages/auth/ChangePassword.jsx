@@ -98,7 +98,7 @@ export default function ChangePasswordPage() {
           {/* Info Banner */}
           <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl">
             <p className="text-sm text-blue-900">
-              <span className="font-semibold">First time logging in?</span> Your initial password is your ID (e.g., STU-2026-001). Please change it now for security.
+              <span className="font-semibold">Your password is the same as your Student ID or Teachers ID.</span> Please change it now for security.
             </p>
           </div>
 

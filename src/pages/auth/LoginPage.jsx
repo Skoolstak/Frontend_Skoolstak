@@ -178,7 +178,7 @@ export default function LoginPage() {
                 {/* First-time login notice */}
                 <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-xl">
                   <p className="text-xs text-blue-900">
-                    <span className="font-semibold">First time logging in?</span> Your initial password is your ID (e.g., STU-2026-001). You'll be able to change it after logging in.
+                    <span className="font-semibold">Your password is the same as your Student ID or Teachers ID.</span> You'll be able to change it after logging in.
                   </p>
                 </div>
               </div>
