@@ -166,17 +166,17 @@ export default function AdminLayout({ children, role }) {
               <p className="mt-1 truncate text-[11px] text-[var(--text-soft)]">{profile?.email || ''}</p>
             </div>
           </div>
-          <div className="mt-4 flex gap-2">
+          <div className="mt-4 space-y-2">
             <button
               onClick={() => navigate('/change-password')}
-              className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-[rgba(108,85,61,0.14)] px-3 py-3 text-sm font-semibold text-[var(--text-strong)] transition-all hover:bg-[rgba(108,85,61,0.08)] active:scale-95"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[rgba(108,85,61,0.14)] px-3 py-3 text-sm font-semibold text-[var(--text-strong)] transition-all hover:bg-[rgba(108,85,61,0.08)] active:scale-95"
             >
               <Key size={16} strokeWidth={2.5}/>
               Change Password
             </button>
             <button
               onClick={handleSignOut}
-              className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-[rgba(108,85,61,0.14)] px-3 py-3 text-sm font-semibold text-[var(--text-strong)] transition-all hover:bg-[rgba(108,85,61,0.08)] active:scale-95"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[rgba(108,85,61,0.14)] px-3 py-3 text-sm font-semibold text-[var(--text-strong)] transition-all hover:bg-[rgba(108,85,61,0.08)] active:scale-95"
             >
               <LogOut size={16} strokeWidth={2.5}/>
               Sign out
