@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Search, Pencil, Trash2 } from 'lucide-react';
+import { Users, Plus, Search, Pencil, Trash2, Camera, Upload } from 'lucide-react';
 import {
   PageHeader, Table, TableSkeleton, StatusBadge,
   Modal, FormField, EmptyState, ConfirmDialog,
@@ -17,6 +17,12 @@ export default function StaffPage() {
   const [form,    setForm]    = useState(EMPTY);
   const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState('');
+  // Photo upload
+  const [photoModal, setPhotoModal] = useState(null);
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState('');
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState('');
 
   useEffect(() => { load(); }, []);
   async function load() {
@@ -44,19 +50,78 @@ export default function StaffPage() {
     catch(e) { console.error(e); }
   }
 
+  function openPhotoUpload(staffMember) {
+    setPhotoModal(staffMember);
+    setPhotoFile(null);
+    setPhotoPreview(staffMember.photo_url || '');
+    setPhotoError('');
+  }
+
+  function handlePhotoSelect(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.size > 2 * 1024 * 1024) {
+      setPhotoError('File size must be less than 2MB');
+      return;
+    }
+    
+    setPhotoFile(file);
+    setPhotoError('');
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPhotoPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function handlePhotoUpload() {
+    if (!photoFile || !photoModal) return;
+    
+    setPhotoUploading(true);
+    setPhotoError('');
+    
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = reader.result;
+        await api.post(`/upload/staff-photo/${photoModal.id}`, { file: base64 });
+        load();
+        setPhotoModal(null);
+      };
+      reader.readAsDataURL(photoFile);
+    } catch (err) {
+      setPhotoError(err.response?.data?.error || 'Failed to upload photo');
+    } finally {
+      setPhotoUploading(false);
+    }
+  }
+
   const filtered = staff.filter(s =>
     `${s.first_name} ${s.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
     (s.department||'').toLowerCase().includes(search.toLowerCase())
   );
 
   const columns = [
-    { key: 'name',        label: 'Name',        render: r => <span className="font-medium">{r.first_name} {r.last_name}</span> },
+    { key: 'photo',       label: '',       render: r => (
+      r.photo_url 
+        ? <img src={r.photo_url} alt={r.first_name} className="w-8 h-8 rounded-full object-cover" />
+        : <div className="w-8 h-8 rounded-full bg-sand-200 flex items-center justify-center text-xs text-charcoal-500 font-medium">{r.first_name[0]}{r.last_name[0]}</div>
+    )},
+    { key: 'name',        label: 'Name',        render: r => (
+      <div>
+        <div className="font-medium">{r.first_name} {r.last_name}</div>
+        {r.staff_id && <div className="text-xs text-charcoal-400">{r.staff_id}</div>}
+      </div>
+    )},
     { key: 'role',        label: 'Role',         render: r => <StatusBadge status={r.role === 'teacher' ? 'active' : 'inactive'} /> },
     { key: 'designation', label: 'Designation',  render: r => r.designation || '—' },
     { key: 'department',  label: 'Department',   render: r => r.department  || '—' },
     { key: 'phone',       label: 'Phone',        render: r => r.phone || '—' },
     { key: 'actions', label: '', render: r => (
       <div className="flex gap-3">
+        <button onClick={() => openPhotoUpload(r)} className="text-charcoal-400 hover:text-purple-500 transition-colors" title="Upload Photo"><Camera size={15} /></button>
         <button onClick={() => openEdit(r)} className="text-charcoal-400 hover:text-brand-gold transition-colors"><Pencil size={15} /></button>
         <button onClick={() => setConfirm(r.id)} className="text-charcoal-400 hover:text-danger transition-colors"><Trash2 size={15} /></button>
       </div>
@@ -117,6 +182,41 @@ export default function StaffPage() {
 
       <ConfirmDialog open={!!confirm} onClose={() => setConfirm(null)} onConfirm={() => handleDelete(confirm)}
         title="Remove Staff Member?" message="This will remove the staff member's account and profile." confirmLabel="Remove" danger />
+
+      {/* Photo Upload Modal */}
+      <Modal open={!!photoModal} onClose={() => setPhotoModal(null)} title={photoModal ? `Upload Photo — ${photoModal.first_name} ${photoModal.last_name}` : ''}>
+        {photoError && <p className="text-sm text-danger bg-red-50 px-4 py-2 rounded-xl mb-4">{photoError}</p>}
+        <div className="space-y-4">
+          {photoPreview && (
+            <div className="flex justify-center">
+              <img src={photoPreview} alt="Preview" className="w-32 h-32 rounded-full object-cover border-4 border-sand-200" />
+            </div>
+          )}
+          <FormField label="Select Photo">
+            <input 
+              type="file" 
+              accept="image/jpeg,image/png,image/webp" 
+              onChange={handlePhotoSelect}
+              className="input-field"
+            />
+            <p className="text-xs text-charcoal-400 mt-1">
+              Maximum file size: 2MB. Accepted formats: JPG, PNG, WebP
+            </p>
+          </FormField>
+          <div className="flex gap-3 justify-end">
+            <button onClick={() => setPhotoModal(null)} className="btn-secondary">Cancel</button>
+            <button 
+              onClick={handlePhotoUpload} 
+              disabled={!photoFile || photoUploading} 
+              className="btn-primary flex items-center gap-2"
+            >
+              {photoUploading && <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
+              <Upload size={15} />
+              {photoUploading ? 'Uploading…' : 'Upload Photo'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

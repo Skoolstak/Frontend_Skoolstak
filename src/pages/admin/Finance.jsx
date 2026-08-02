@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, TrendingUp, TrendingDown, DollarSign, Upload, X, ImageIcon } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, DollarSign, Upload, X, ImageIcon, FileDown } from 'lucide-react';
 import {
   PageHeader, Table, TableSkeleton, StatusBadge, GHSAmount,
   Modal, FormField, SelectField, TermSelector, StatCard,
@@ -213,8 +213,9 @@ function InvoicesTab() {
         receiptUrl = urlData?.publicUrl || path;
       }
 
-      await api.post(`/finance/invoices/${payModal.id}/pay`, { ...payForm, reference: receiptUrl });
-      setPayDone({ student_name: payModal.student_name, amount: payForm.amount, reference: receiptUrl, method: payForm.method });
+      const payRes = await api.post(`/finance/invoices/${payModal.id}/pay`, { ...payForm, reference: receiptUrl });
+      const paymentId = payRes.data.payment?.id;
+      setPayDone({ student_name: payModal.student_name, amount: payForm.amount, reference: receiptUrl, method: payForm.method, paymentId });
       loadInvoices();
       setPayModal(null);
       setPayForm({ amount:'', method:'mtn_momo', reference:'' });
@@ -229,8 +230,26 @@ function InvoicesTab() {
     { key:'amount',       label:'Amount',    render: r => <GHSAmount amount={r.amount} /> },
     { key:'due_date',     label:'Due Date',  render: r => new Date(r.due_date).toLocaleDateString('en-GH') },
     { key:'status',       label:'Status',    render: r => <StatusBadge status={r.status} /> },
-    { key:'actions',      label:'', render: r => r.status !== 'paid' && (
-      <button onClick={() => { setPayModal(r); setPayForm({amount: String(Number(r.amount) - Number(r.amount_paid||0)), method:'mtn_momo', reference:''}); }} className="text-xs text-brand-gold hover:underline font-medium">Record Payment</button>
+    { key:'actions',      label:'', render: r => (
+      <div className="flex gap-2 items-center">
+        <a 
+          href={`${api.defaults.baseURL}/finance/invoice/${r.id}/pdf`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-charcoal-400 hover:text-blue-500 transition-colors"
+          title="Download Invoice PDF"
+        >
+          <FileDown size={15} />
+        </a>
+        {r.status !== 'paid' && (
+          <button 
+            onClick={() => { setPayModal(r); setPayForm({amount: String(Number(r.amount) - Number(r.amount_paid||0)), method:'mtn_momo', reference:''}); }} 
+            className="text-xs text-brand-gold hover:underline font-medium"
+          >
+            Record Payment
+          </button>
+        )}
+      </div>
     )},
   ];
 
@@ -265,10 +284,19 @@ function InvoicesTab() {
       {payDone && (
         <div className="fixed bottom-6 right-6 z-50 flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 px-5 py-4 shadow-xl max-w-sm">
           <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-green-500 text-white text-lg font-bold">✓</div>
-          <div>
+          <div className="flex-1">
             <p className="font-semibold text-green-800">Payment recorded — Marked as Paid</p>
             <p className="mt-0.5 text-sm text-green-700">{payDone.student_name} · ₵{Number(payDone.amount).toLocaleString()}</p>
-            {payDone.reference && <p className="mt-0.5 text-xs text-green-600 font-mono">Ref: {payDone.reference}</p>}
+            {payDone.paymentId && (
+              <a 
+                href={`${api.defaults.baseURL}/finance/receipt/${payDone.paymentId}/pdf`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-flex items-center gap-1 text-xs text-green-800 hover:text-green-900 font-medium underline"
+              >
+                <FileDown size={12} /> Download Receipt
+              </a>
+            )}
           </div>
           <button onClick={() => setPayDone(null)} className="ml-auto text-green-500 hover:text-green-700 text-lg leading-none">×</button>
         </div>

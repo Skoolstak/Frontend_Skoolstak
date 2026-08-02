@@ -1,34 +1,96 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 import { ROLE_HOME } from '../../utils/ProtectedRoute';
 import { Eye, EyeOff, School } from 'lucide-react';
+import api from '../../services/api';
 
 export default function LoginPage() {
   const { signIn, profile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
+  const [loginMethod, setLoginMethod] = useState('email'); // 'email' or 'id'
   const [email, setEmail] = useState('');
+  const [studentId, setStudentId] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberEmail, setRememberEmail] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Load saved email/ID from localStorage on mount
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('rememberedEmail');
+    const savedId = localStorage.getItem('rememberedId');
+    
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setRememberEmail(true);
+      setLoginMethod('email'); // Switch to email login if saved email exists
+    } else if (savedId) {
+      setStudentId(savedId);
+      setRememberMe(true);
+      setLoginMethod('id'); // Switch to ID login if saved ID exists
+    }
+  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      await signIn(email.trim(), password);
-      // short delay so profile fetch completes
-      setTimeout(() => {
-        const role = profile?.role;
-        const from = location.state?.from?.pathname;
-        navigate(from || ROLE_HOME[role] || '/admin', { replace: true });
-      }, 500);
+      if (loginMethod === 'id') {
+        // ID-based login (students/teachers)
+        const res = await api.post('/auth/login-with-id', {
+          id: studentId.trim().toUpperCase(),
+          password,
+        });
+        
+        // Save or remove ID based on "Remember me" checkbox
+        if (rememberMe) {
+          localStorage.setItem('rememberedId', studentId.trim().toUpperCase());
+        } else {
+          localStorage.removeItem('rememberedId');
+        }
+        
+        // Manual sign-in with session from API
+        if (res.data.session) {
+          // Store session in localStorage for the Supabase client
+          localStorage.setItem('supabase.auth.token', JSON.stringify({
+            currentSession: res.data.session,
+            expiresAt: res.data.session.expires_at,
+          }));
+          
+          // Navigate to appropriate dashboard
+          const roleMap = {
+            student: '/student/academic-records',
+            teacher: '/teacher',
+          };
+          setTimeout(() => {
+            navigate(roleMap[res.data.role] || '/admin', { replace: true });
+            window.location.reload(); // Refresh to update auth context
+          }, 300);
+        }
+      } else {
+        // Email-based login (school admins)
+        // Save or remove email based on "Remember me" checkbox
+        if (rememberEmail) {
+          localStorage.setItem('rememberedEmail', email.trim());
+        } else {
+          localStorage.removeItem('rememberedEmail');
+        }
+        
+        await signIn(email.trim(), password);
+        setTimeout(() => {
+          const role = profile?.role;
+          const from = location.state?.from?.pathname;
+          navigate(from || ROLE_HOME[role] || '/admin', { replace: true });
+        }, 500);
+      }
     } catch (err) {
-      setError(err.message || 'Invalid email or password. Please try again.');
+      setError(err.response?.data?.error || err.message || 'Invalid credentials. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -51,6 +113,32 @@ export default function LoginPage() {
           <h2 className="text-xl font-bold text-charcoal-900 mb-1">Welcome back</h2>
           <p className="text-sm text-charcoal-500 mb-6">Sign in to your school account</p>
 
+          {/* Login Method Toggle */}
+          <div className="flex gap-2 mb-6 p-1 bg-sand-100 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setLoginMethod('email')}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                loginMethod === 'email'
+                  ? 'bg-white text-charcoal-900 shadow-sm'
+                  : 'text-charcoal-500 hover:text-charcoal-700'
+              }`}
+            >
+              School Admin
+            </button>
+            <button
+              type="button"
+              onClick={() => setLoginMethod('id')}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                loginMethod === 'id'
+                  ? 'bg-white text-charcoal-900 shadow-sm'
+                  : 'text-charcoal-500 hover:text-charcoal-700'
+              }`}
+            >
+              Student / Teacher
+            </button>
+          </div>
+
           {error && (
             <div className="mb-4 px-4 py-3 bg-red-50 border border-red-100 text-danger text-sm rounded-xl">
               {error}
@@ -58,20 +146,38 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Email */}
-            <div>
-              <label className="label" htmlFor="email">Email address</label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                className="input-field"
-                placeholder="your@school.edu.gh"
-              />
-            </div>
+            {/* Email or ID Input */}
+            {loginMethod === 'email' ? (
+              <div>
+                <label className="label" htmlFor="email">Email address</label>
+                <input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  className="input-field"
+                  placeholder="your@school.edu.gh"
+                />
+              </div>
+            ) : (
+              <div>
+                <label className="label" htmlFor="studentId">Student / Teacher ID</label>
+                <input
+                  id="studentId"
+                  type="text"
+                  required
+                  value={studentId}
+                  onChange={e => setStudentId(e.target.value)}
+                  className="input-field uppercase"
+                  placeholder="STU-2024-001 or TEA-2024-001"
+                />
+                <p className="text-xs text-charcoal-400 mt-1">
+                  Your ID can be found on your student/staff card
+                </p>
+              </div>
+            )}
 
             {/* Password */}
             <div>
@@ -98,15 +204,49 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {/* Remember me checkbox for email login */}
+            {loginMethod === 'email' && (
+              <div className="flex items-center">
+                <input
+                  id="rememberEmail"
+                  type="checkbox"
+                  checked={rememberEmail}
+                  onChange={e => setRememberEmail(e.target.checked)}
+                  className="w-4 h-4 text-green-600 border-charcoal-300 rounded focus:ring-green-500 focus:ring-2"
+                />
+                <label htmlFor="rememberEmail" className="ml-2 text-sm text-charcoal-600">
+                  Remember my email for faster login
+                </label>
+              </div>
+            )}
+
+            {/* Remember me checkbox for ID login */}
+            {loginMethod === 'id' && (
+              <div className="flex items-center">
+                <input
+                  id="rememberMe"
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={e => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 text-green-600 border-charcoal-300 rounded focus:ring-green-500 focus:ring-2"
+                />
+                <label htmlFor="rememberMe" className="ml-2 text-sm text-charcoal-600">
+                  Remember my ID for faster login
+                </label>
+              </div>
+            )}
+
             {/* Forgot password */}
-            <div className="flex justify-end">
-              <button
-                type="button"
-                className="text-sm text-brand-gold hover:text-brand-gold-dark font-medium"
-              >
-                Forgot password?
-              </button>
-            </div>
+            {loginMethod === 'email' && (
+              <div className="flex justify-end">
+                <Link
+                  to="/forgot-password"
+                  className="text-sm text-brand-gold hover:text-brand-gold-dark font-medium"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+            )}
 
             {/* Submit */}
             <button

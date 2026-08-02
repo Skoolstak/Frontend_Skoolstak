@@ -11,6 +11,8 @@ import { ProtectedRoute } from './utils/ProtectedRoute';
 // Auth
 import LoginPage  from './pages/auth/LoginPage';
 import SignUpPage from './pages/auth/SignUpPage';
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 
 // Layouts
 import AdminLayout from './components/layout/AdminLayout';
@@ -48,6 +50,8 @@ export default function App() {
           {/* Public */}
           <Route path="/login"  element={<LoginPage />} />
           <Route path="/signup" element={<SignUpPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/"       element={<Navigate to="/login" replace />} />
 
           {/* Super Admin */}

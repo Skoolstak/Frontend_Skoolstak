@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GraduationCap, Plus, Search, Pencil, Trash2, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
+import { GraduationCap, Plus, Search, Pencil, Trash2, BookOpen, ChevronDown, ChevronUp, Upload, FileSpreadsheet, Camera } from 'lucide-react';
 import {
   PageHeader, Table, TableSkeleton, StatusBadge,
   Modal, FormField, SelectField, EmptyState, ConfirmDialog,
@@ -58,6 +58,18 @@ export default function StudentsPage() {
   const [gradConfirm, setGradConfirm] = useState(null);
   const [gradSaving,  setGradSaving]  = useState(false);
   const [gradYear,    setGradYear]    = useState(String(new Date().getFullYear()));
+  // Photo upload
+  const [photoModal, setPhotoModal] = useState(null); // student obj
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState('');
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState('');
+  // Excel import
+  const [excelModal, setExcelModal] = useState(false);
+  const [excelFile, setExcelFile] = useState(null);
+  const [excelImporting, setExcelImporting] = useState(false);
+  const [excelError, setExcelError] = useState('');
+  const [excelResult, setExcelResult] = useState(null);
 
   useEffect(() => { load(); }, []);
   async function load() {
@@ -110,17 +122,121 @@ export default function StudentsPage() {
     catch(e) { console.error(e); }
   }
 
+  function openPhotoUpload(student) {
+    setPhotoModal(student);
+    setPhotoFile(null);
+    setPhotoPreview(student.photo_url || '');
+    setPhotoError('');
+  }
+
+  function handlePhotoSelect(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.size > 2 * 1024 * 1024) {
+      setPhotoError('File size must be less than 2MB');
+      return;
+    }
+    
+    setPhotoFile(file);
+    setPhotoError('');
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPhotoPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function handlePhotoUpload() {
+    if (!photoFile || !photoModal) return;
+    
+    setPhotoUploading(true);
+    setPhotoError('');
+    
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = reader.result;
+        await api.post(`/upload/student-photo/${photoModal.id}`, { file: base64 });
+        load();
+        setPhotoModal(null);
+      };
+      reader.readAsDataURL(photoFile);
+    } catch (err) {
+      setPhotoError(err.response?.data?.error || 'Failed to upload photo');
+    } finally {
+      setPhotoUploading(false);
+    }
+  }
+
+  function openExcelImport() {
+    setExcelModal(true);
+    setExcelFile(null);
+    setExcelError('');
+    setExcelResult(null);
+  }
+
+  function handleExcelSelect(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+      setExcelError('Please select an Excel file (.xlsx or .xls)');
+      return;
+    }
+    
+    setExcelFile(file);
+    setExcelError('');
+    setExcelResult(null);
+  }
+
+  async function handleExcelImport() {
+    if (!excelFile) return;
+    
+    setExcelImporting(true);
+    setExcelError('');
+    setExcelResult(null);
+    
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = reader.result;
+        const res = await api.post('/students/import-excel', { file: base64 });
+        setExcelResult(res.data);
+        load();
+      };
+      reader.readAsDataURL(excelFile);
+    } catch (err) {
+      setExcelError(err.response?.data?.error || 'Failed to import Excel file');
+    } finally {
+      setExcelImporting(false);
+    }
+  }
+
   const filtered = students.filter(s =>
     `${s.first_name} ${s.last_name}`.toLowerCase().includes(search.toLowerCase())
   );
 
   const columns = [
-    { key: 'name',       label: 'Student',   render: r => <span className="font-medium">{r.first_name} {r.last_name}</span> },
+    { key: 'photo',      label: '',       render: r => (
+      r.photo_url 
+        ? <img src={r.photo_url} alt={r.first_name} className="w-8 h-8 rounded-full object-cover" />
+        : <div className="w-8 h-8 rounded-full bg-sand-200 flex items-center justify-center text-xs text-charcoal-500 font-medium">{r.first_name[0]}{r.last_name[0]}</div>
+    )},
+    { key: 'name',       label: 'Student',   render: r => (
+      <div>
+        <div className="font-medium">{r.first_name} {r.last_name}</div>
+        {r.student_id && <div className="text-xs text-charcoal-400">{r.student_id}</div>}
+      </div>
+    )},
     { key: 'class_name', label: 'Class',     render: r => r.class_name || '—' },
     { key: 'dob',        label: 'Date of Birth', render: r => r.dob ? new Date(r.dob).toLocaleDateString('en-GH') : '—' },
     { key: 'status',     label: 'Status',    render: r => <StatusBadge status={r.status} /> },
     { key: 'actions',    label: '', render: r => (
       <div className="flex gap-2">
+        <button onClick={() => openPhotoUpload(r)} className="text-charcoal-400 hover:text-purple-500 transition-colors" title="Upload Photo"><Camera size={15} /></button>
         <button onClick={() => openHistory(r)} className="text-charcoal-400 hover:text-blue-500 transition-colors" title="Academic History"><BookOpen size={15} /></button>
         <button onClick={() => openEdit(r)} className="text-charcoal-400 hover:text-brand-gold transition-colors" title="Edit"><Pencil size={15} /></button>
         {r.status !== 'alumni' && (
@@ -136,7 +252,16 @@ export default function StudentsPage() {
       <PageHeader
         title="Students"
         subtitle="Manage student enrollment and profiles."
-        action={<button onClick={openAdd} className="btn-primary flex items-center gap-2"><Plus size={16} /> Enroll Student</button>}
+        action={
+          <div className="flex gap-2">
+            <button onClick={openExcelImport} className="btn-secondary flex items-center gap-2">
+              <FileSpreadsheet size={16} /> Import Excel
+            </button>
+            <button onClick={openAdd} className="btn-primary flex items-center gap-2">
+              <Plus size={16} /> Enroll Student
+            </button>
+          </div>
+        }
       />
       <div className="card">
         <div className="flex items-center gap-3 mb-4">
@@ -252,6 +377,90 @@ export default function StudentsPage() {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Photo Upload Modal */}
+      <Modal open={!!photoModal} onClose={() => setPhotoModal(null)} title={photoModal ? `Upload Photo — ${photoModal.first_name} ${photoModal.last_name}` : ''}>
+        {photoError && <p className="text-sm text-danger bg-red-50 px-4 py-2 rounded-xl mb-4">{photoError}</p>}
+        <div className="space-y-4">
+          {photoPreview && (
+            <div className="flex justify-center">
+              <img src={photoPreview} alt="Preview" className="w-32 h-32 rounded-full object-cover border-4 border-sand-200" />
+            </div>
+          )}
+          <FormField label="Select Photo">
+            <input 
+              type="file" 
+              accept="image/jpeg,image/png,image/webp" 
+              onChange={handlePhotoSelect}
+              className="input-field"
+            />
+            <p className="text-xs text-charcoal-400 mt-1">
+              Maximum file size: 2MB. Accepted formats: JPG, PNG, WebP
+            </p>
+          </FormField>
+          <div className="flex gap-3 justify-end">
+            <button onClick={() => setPhotoModal(null)} className="btn-secondary">Cancel</button>
+            <button 
+              onClick={handlePhotoUpload} 
+              disabled={!photoFile || photoUploading} 
+              className="btn-primary flex items-center gap-2"
+            >
+              {photoUploading && <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
+              <Upload size={15} />
+              {photoUploading ? 'Uploading…' : 'Upload Photo'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Excel Import Modal */}
+      <Modal open={excelModal} onClose={() => setExcelModal(false)} title="Import Students from Excel">
+        {excelError && <p className="text-sm text-danger bg-red-50 px-4 py-2 rounded-xl mb-4">{excelError}</p>}
+        {excelResult && (
+          <div className="mb-4 px-4 py-3 bg-green-50 border border-green-100 rounded-xl">
+            <p className="text-sm text-green-800">
+              <strong>Import Complete!</strong> Successfully imported {excelResult.success} student{excelResult.success !== 1 ? 's' : ''}.
+              {excelResult.failed > 0 && ` ${excelResult.failed} failed.`}
+            </p>
+            {excelResult.errors && excelResult.errors.length > 0 && (
+              <ul className="mt-2 text-xs text-green-700 list-disc list-inside">
+                {excelResult.errors.map((err, i) => <li key={i}>{err}</li>)}
+              </ul>
+            )}
+          </div>
+        )}
+        <div className="space-y-4">
+          <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+            <p className="text-sm text-blue-900 font-medium mb-2">Excel Format Requirements:</p>
+            <ul className="text-xs text-blue-800 space-y-1 list-disc list-inside">
+              <li>First row must contain column headers</li>
+              <li>Required columns: <code>first_name</code>, <code>last_name</code></li>
+              <li>Optional columns: <code>dob</code> (YYYY-MM-DD format)</li>
+              <li>Each student will be auto-assigned a unique Student ID</li>
+            </ul>
+          </div>
+          <FormField label="Select Excel File">
+            <input 
+              type="file" 
+              accept=".xlsx,.xls" 
+              onChange={handleExcelSelect}
+              className="input-field"
+            />
+          </FormField>
+          <div className="flex gap-3 justify-end">
+            <button onClick={() => setExcelModal(false)} className="btn-secondary">Cancel</button>
+            <button 
+              onClick={handleExcelImport} 
+              disabled={!excelFile || excelImporting} 
+              className="btn-primary flex items-center gap-2"
+            >
+              {excelImporting && <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
+              <FileSpreadsheet size={15} />
+              {excelImporting ? 'Importing…' : 'Import Students'}
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
