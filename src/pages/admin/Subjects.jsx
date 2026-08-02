@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { BookOpen, Plus, Pencil, Trash2, Search, Tag } from 'lucide-react';
+import { BookOpen, Plus, Pencil, Trash2, Search, Tag, FileSpreadsheet, CheckCircle2, FileText, Info, Zap } from 'lucide-react';
 import {
   PageHeader, Table, TableSkeleton, EmptyState,
   Modal, FormField, SelectField, ConfirmDialog,
@@ -20,6 +20,12 @@ export default function SubjectsPage() {
   const [form,      setForm]      = useState(EMPTY);
   const [saving,    setSaving]    = useState(false);
   const [error,     setError]     = useState('');
+  // Excel import
+  const [excelModal, setExcelModal] = useState(false);
+  const [excelFile, setExcelFile] = useState(null);
+  const [excelImporting, setExcelImporting] = useState(false);
+  const [excelError, setExcelError] = useState('');
+  const [excelResult, setExcelResult] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -66,6 +72,46 @@ export default function SubjectsPage() {
     finally { setConfirm(null); }
   }
 
+  function openExcelImport() {
+    setExcelModal(true);
+    setExcelFile(null);
+    setExcelError('');
+    setExcelResult(null);
+  }
+
+  function handleExcelSelect(e) {
+    const file = e.target.files?.[0];
+    setExcelFile(file || null);
+    setExcelError('');
+    setExcelResult(null);
+  }
+
+  async function handleExcelImport() {
+    if (!excelFile) return;
+    
+    setExcelImporting(true);
+    setExcelError('');
+    setExcelResult(null);
+    
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = reader.result;
+        // If a class filter is active, use it for all subjects
+        const payload = { file: base64 };
+        if (classFilter) payload.class_id = classFilter;
+        const res = await api.post('/subjects/import-excel', payload);
+        setExcelResult(res.data);
+        load();
+      };
+      reader.readAsDataURL(excelFile);
+    } catch (err) {
+      setExcelError(err.response?.data?.error || 'Failed to import Excel file');
+    } finally {
+      setExcelImporting(false);
+    }
+  }
+
   const filtered = subjects.filter(s => {
     const q = search.toLowerCase();
     const matchSearch = s.name.toLowerCase().includes(q) || (s.code || '').toLowerCase().includes(q);
@@ -99,7 +145,16 @@ export default function SubjectsPage() {
         title="Subjects"
         subtitle="Manage subjects assigned to each class"
         icon={BookOpen}
-        action={<button onClick={openAdd} className="btn-primary flex items-center gap-2"><Plus size={16}/> Add Subject</button>}
+        action={
+          <div className="flex gap-2">
+            <button onClick={openExcelImport} className="btn-secondary flex items-center gap-2">
+              <FileSpreadsheet size={16} /> Import Excel
+            </button>
+            <button onClick={openAdd} className="btn-primary flex items-center gap-2">
+              <Plus size={16}/> Add Subject
+            </button>
+          </div>
+        }
       />
 
       {/* Filters */}
@@ -165,6 +220,103 @@ export default function SubjectsPage() {
           onCancel={() => setConfirm(null)}
         />
       )}
+
+      {/* Excel Import Modal */}
+      <Modal open={excelModal} onClose={() => setExcelModal(false)} title="Import Subjects from Excel">
+        {excelError && <p className="text-sm text-danger bg-red-50 px-4 py-2 rounded-xl mb-4">{excelError}</p>}
+        {excelResult && (
+          <div className="mb-4 px-4 py-3 bg-green-50 border border-green-100 rounded-xl">
+            <p className="text-sm text-green-800">
+              <strong>Import Complete!</strong> Successfully imported {excelResult.success} subject{excelResult.success !== 1 ? 's' : ''}.
+              {excelResult.failed > 0 && ` ${excelResult.failed} failed.`}
+            </p>
+            {excelResult.errors && excelResult.errors.length > 0 && (
+              <ul className="mt-2 text-xs text-green-700 list-disc list-inside">
+                {excelResult.errors.slice(0, 5).map((err, i) => <li key={i}>{JSON.stringify(err)}</li>)}
+              </ul>
+            )}
+          </div>
+        )}
+        <div className="space-y-4">
+          {/* Beautiful Format Requirements */}
+          <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-2 bg-amber-500 rounded-lg">
+                <FileSpreadsheet className="text-white" size={20} />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-amber-900">Excel Format Guide</h3>
+                <p className="text-xs text-amber-700">Follow these requirements for successful import</p>
+              </div>
+            </div>
+
+            {/* Smart Class Assignment Banner */}
+            {classFilter && (
+              <div className="mb-4 bg-green-500 text-white rounded-xl p-3 flex items-start gap-2">
+                <Zap size={18} className="flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold">Smart Import Active!</p>
+                  <p className="text-xs opacity-90">All subjects will be assigned to: <span className="font-bold">{classes.find(c => c.id === classFilter)?.name}</span></p>
+                </div>
+              </div>
+            )}
+
+            {/* Required Columns */}
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle2 size={16} className="text-amber-600" />
+                <span className="text-sm font-semibold text-amber-900">Required Columns</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className="px-3 py-1.5 bg-white border-2 border-amber-300 rounded-lg text-xs font-mono font-medium text-amber-800 shadow-sm">name</span>
+                {!classFilter && (
+                  <span className="px-3 py-1.5 bg-white border-2 border-amber-300 rounded-lg text-xs font-mono font-medium text-amber-800 shadow-sm">class_id</span>
+                )}
+              </div>
+            </div>
+
+            {/* Optional Columns */}
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <FileText size={16} className="text-amber-600" />
+                <span className="text-sm font-semibold text-amber-900">Optional Columns</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className="px-3 py-1.5 bg-white/70 border border-amber-200 rounded-lg text-xs font-mono text-amber-700">code</span>
+                <span className="px-3 py-1.5 bg-white/70 border border-amber-200 rounded-lg text-xs font-mono text-amber-700">is_active</span>
+              </div>
+            </div>
+
+            {/* Additional Info */}
+            <div className="flex items-start gap-2 pt-3 border-t border-amber-200">
+              <Info size={16} className="text-amber-600 mt-0.5 flex-shrink-0" />
+              <div className="text-xs text-amber-800">
+                <span className="font-medium">Note:</span> Teachers can be assigned later through the UI
+              </div>
+            </div>
+          </div>
+          <FormField label="Select Excel File">
+            <input 
+              type="file" 
+              accept=".xlsx,.xls" 
+              onChange={handleExcelSelect}
+              className="input-field"
+            />
+          </FormField>
+          <div className="flex gap-3 justify-end">
+            <button onClick={() => setExcelModal(false)} className="btn-secondary">Cancel</button>
+            <button 
+              onClick={handleExcelImport} 
+              disabled={!excelFile || excelImporting} 
+              className="btn-primary flex items-center gap-2"
+            >
+              {excelImporting && <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
+              <FileSpreadsheet size={15} />
+              {excelImporting ? 'Importing…' : 'Import Subjects'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
