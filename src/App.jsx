@@ -38,10 +38,15 @@ import Alumni         from './pages/admin/Alumni';
 import TeacherDashboard  from './pages/teacher/Dashboard';
 import TeacherTimetable  from './pages/teacher/Timetable';
 import Gradebook         from './pages/teacher/Gradebook';
+import TeacherAttendance from './pages/teacher/Attendance';
+import TeacherClasses    from './pages/teacher/Classes';
 
 // Student
+import StudentDashboard   from './pages/student/Dashboard';
 import StudentTimetable   from './pages/student/Timetable';
 import AcademicRecords    from './pages/student/AcademicRecords';
+import StudentAttendance  from './pages/student/Attendance';
+import StudentAssignments from './pages/student/Assignments';
 
 export default function App() {
   return (
@@ -113,6 +118,8 @@ export default function App() {
                     <Route index             element={<TeacherDashboard />} />
                     <Route path="timetable"  element={<TeacherTimetable />} />
                     <Route path="gradebook"  element={<Gradebook />} />
+                    <Route path="attendance" element={<TeacherAttendance />} />
+                    <Route path="classes"    element={<TeacherClasses />} />
                   </Routes>
                 </AdminLayout>
               </ProtectedRoute>
@@ -124,11 +131,15 @@ export default function App() {
             path="/student/*"
             element={
               <ProtectedRoute allowedRoles={['student']}>
-                <Routes>
-                  <Route index                  element={<StudentTimetable />} />
-                  <Route path="timetable"       element={<StudentTimetable />} />
-                  <Route path="academic-records" element={<AcademicRecords />} />
-                </Routes>
+                <AdminLayout role="student">
+                  <Routes>
+                    <Route index                   element={<StudentDashboard />} />
+                    <Route path="timetable"        element={<StudentTimetable />} />
+                    <Route path="academic-records" element={<AcademicRecords />} />
+                    <Route path="attendance"       element={<StudentAttendance />} />
+                    <Route path="assignments"      element={<StudentAssignments />} />
+                  </Routes>
+                </AdminLayout>
               </ProtectedRoute>
             }
           />

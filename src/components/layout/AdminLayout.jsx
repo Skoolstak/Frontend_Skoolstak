@@ -41,13 +41,24 @@ const NAV_BY_ROLE = {
   teacher: [
     { label: 'Dashboard',  icon: LayoutDashboard, to: '/teacher' },
     { label: 'Gradebook',  icon: FileText,         to: '/teacher/gradebook' },
+    { label: 'Attendance', icon: ClipboardList,    to: '/teacher/attendance' },
+    { label: 'My Classes', icon: Users,            to: '/teacher/classes' },
     { label: 'Timetable',  icon: Calendar,         to: '/teacher/timetable' },
+  ],
+  student: [
+    { label: 'Dashboard',  icon: LayoutDashboard,  to: '/student' },
+    { label: 'Timetable',  icon: Calendar,         to: '/student/timetable' },
+    { label: 'Grades',     icon: FileText,          to: '/student/academic-records' },
+    { label: 'Attendance', icon: ClipboardList,    to: '/student/attendance' },
+    { label: 'Assignments', icon: BookOpen,        to: '/student/assignments' },
   ],
 };
 
 const ROLE_LABEL = {
   super_admin:  'Super Admin',
   school_admin: 'School Admin',
+  teacher:      'Teacher',
+  student:      'Student Portal',
 };
 
 export default function AdminLayout({ children, role }) {
