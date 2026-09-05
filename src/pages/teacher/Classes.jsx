@@ -83,7 +83,7 @@ export default function TeacherClasses() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
               <div className="p-2 rounded-lg bg-blue-50 border border-blue-100">
                 <p className="text-xs text-blue-600 font-medium">Students</p>
                 <p className="text-lg font-bold text-blue-700">{cls.student_count || 0}</p>

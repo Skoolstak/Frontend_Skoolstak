@@ -25,7 +25,7 @@ function AddSchoolModal({ open, onClose, onCreated }) {
     <Modal open={open} onClose={onClose} title="Add New School" size="md">
       {error && <p className="text-sm text-danger bg-red-50 px-4 py-2 rounded-xl mb-4">{error}</p>}
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField label="School Name" required><input className="input-field" value={form.name} onChange={e => set('name', e.target.value)} required placeholder="E.g. Accra Academy" /></FormField>
           <FormField label="Slug (unique ID)" required><input className="input-field" value={form.slug} onChange={e => set('slug', e.target.value.toLowerCase().replace(/\s+/g,'-'))} required placeholder="accra-academy" /></FormField>
         </div>
@@ -35,7 +35,7 @@ function AddSchoolModal({ open, onClose, onCreated }) {
           </select>
         </FormField>
         <p className="text-xs font-semibold text-charcoal-500 uppercase tracking-wide pt-1">Initial School Admin</p>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField label="First Name" required><input className="input-field" value={form.admin_first_name} onChange={e => set('admin_first_name', e.target.value)} required /></FormField>
           <FormField label="Last Name" required><input className="input-field" value={form.admin_last_name} onChange={e => set('admin_last_name', e.target.value)} required /></FormField>
         </div>
@@ -105,7 +105,7 @@ export default function SuperAdminDashboard() {
         subtitle="Manage all schools on the Skoolstak platform."
         action={<button onClick={() => setShowModal(true)} className="btn-primary flex items-center gap-2"><Plus size={16} /> Add School</button>}
       />
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
         {statCards.map(s => <StatCard key={s.label} {...s} />)}
       </div>
       <div className="card">

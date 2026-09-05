@@ -165,7 +165,7 @@ export default function ClassesPage() {
       <Modal open={!!modal} onClose={() => setModal(null)} title={modal === 'add' ? 'Add Class' : 'Edit Class'}>
         {error && <p className="text-sm text-danger bg-red-50 px-4 py-2 rounded-xl mb-4">{error}</p>}
         <form onSubmit={handleSave} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="Class Name" required><input className="input-field" value={form.name} onChange={e => set('name', e.target.value)} required placeholder="E.g. Primary 3B" /></FormField>
             <FormField label="Level" required>
               <SelectField value={form.level} onChange={e => set('level', e.target.value)}

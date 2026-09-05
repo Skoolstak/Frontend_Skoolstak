@@ -7,7 +7,7 @@ import api from '../../services/api';
 import { supabase } from '../../services/supabase';
 
 export default function LoginPage() {
-  const { signIn, profile } = useAuth();
+  const { signIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -80,12 +80,9 @@ export default function LoginPage() {
           localStorage.removeItem('rememberedEmail');
         }
         
-        await signIn(email.trim(), password);
-        setTimeout(() => {
-          const role = profile?.role;
-          const from = location.state?.from?.pathname;
-          navigate(from || ROLE_HOME[role] || '/admin', { replace: true });
-        }, 500);
+        const result = await signIn(email.trim(), password);
+        const from = location.state?.from?.pathname;
+        navigate(from || ROLE_HOME[result.profile?.role] || '/admin', { replace: true });
       }
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Invalid credentials. Please try again.');

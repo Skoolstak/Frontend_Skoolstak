@@ -48,6 +48,14 @@ import AcademicRecords    from './pages/student/AcademicRecords';
 import StudentAttendance  from './pages/student/Attendance';
 import StudentAssignments from './pages/student/Assignments';
 
+// Teacher assignments
+import TeacherAssignments from './pages/teacher/Assignments';
+
+// Parent
+import ParentDashboard  from './pages/parent/Dashboard';
+import ParentFees       from './pages/parent/Fees';
+import ParentAttendance from './pages/parent/Attendance';
+
 export default function App() {
   return (
     <AuthProvider>
@@ -64,8 +72,24 @@ export default function App() {
           <Route
             path="/change-password"
             element={
-              <ProtectedRoute allowedRoles={['super_admin', 'school_admin', 'teacher', 'student']}>
+              <ProtectedRoute allowedRoles={['super_admin', 'school_admin', 'teacher', 'student', 'parent']}>
                 <ChangePasswordPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Parent */}
+          <Route
+            path="/parent/*"
+            element={
+              <ProtectedRoute allowedRoles={['parent']}>
+                <AdminLayout role="parent">
+                  <Routes>
+                    <Route index             element={<ParentDashboard />} />
+                    <Route path="fees"       element={<ParentFees />} />
+                    <Route path="attendance" element={<ParentAttendance />} />
+                  </Routes>
+                </AdminLayout>
               </ProtectedRoute>
             }
           />
@@ -120,6 +144,7 @@ export default function App() {
                     <Route path="gradebook"  element={<Gradebook />} />
                     <Route path="attendance" element={<TeacherAttendance />} />
                     <Route path="classes"    element={<TeacherClasses />} />
+                    <Route path="assignments" element={<TeacherAssignments />} />
                   </Routes>
                 </AdminLayout>
               </ProtectedRoute>

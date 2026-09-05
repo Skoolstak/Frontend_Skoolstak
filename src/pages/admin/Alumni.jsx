@@ -259,7 +259,7 @@ export default function AlumniPage() {
                 {students.map(s => <option key={s.id} value={s.id}>{s.first_name} {s.last_name} — {s.class_name || 'No Class'}</option>)}
               </select>
             </FormField>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FormField label="Graduation Year *">
                 <input className="input" type="number" min="2000" max="2099" value={gradForm.graduation_year} onChange={e => setGradForm(f => ({ ...f, graduation_year: e.target.value }))} required/>
               </FormField>

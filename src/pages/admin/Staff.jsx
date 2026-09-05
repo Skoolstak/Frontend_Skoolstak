@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Search, Pencil, Trash2, Camera, Upload, FileSpreadsheet, CheckCircle2, FileText, Sparkles, Mail } from 'lucide-react';
+import { Users, Plus, Search, Pencil, Trash2, Camera, Upload, FileSpreadsheet, CheckCircle2, FileText, Sparkles, Mail, KeyRound } from 'lucide-react';
 import {
-  PageHeader, Table, TableSkeleton, StatusBadge,
+  PageHeader, Table, TableSkeleton, StatusBadge, AvatarThumb,
   Modal, FormField, EmptyState, ConfirmDialog,
 } from '../../components/shared';
 import api from '../../services/api';
@@ -47,8 +47,8 @@ export default function StaffPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    if (file.size > 2 * 1024 * 1024) {
-      setFormPhotoError('File size must be less than 2MB');
+    if (file.size > 5 * 1024 * 1024) {
+      setFormPhotoError('File size must be less than 5MB');
       return;
     }
     
@@ -110,6 +110,15 @@ export default function StaffPage() {
     catch(e) { console.error(e); }
   }
 
+  async function handleResetLogin(staffMember) {
+    try {
+      const { data } = await api.post(`/staff/${staffMember.id}/reset-login`);
+      window.alert(data.message);
+    } catch (err) {
+      window.alert(err.response?.data?.error || 'Unable to reset the teacher login.');
+    }
+  }
+
   function openPhotoUpload(staffMember) {
     setPhotoModal(staffMember);
     setPhotoFile(null);
@@ -121,8 +130,8 @@ export default function StaffPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    if (file.size > 2 * 1024 * 1024) {
-      setPhotoError('File size must be less than 2MB');
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError('File size must be less than 5MB');
       return;
     }
     
@@ -202,9 +211,7 @@ export default function StaffPage() {
 
   const columns = [
     { key: 'photo',       label: '',       render: r => (
-      r.photo_url 
-        ? <img src={r.photo_url} alt={r.first_name} className="w-8 h-8 rounded-full object-cover" />
-        : <div className="w-8 h-8 rounded-full bg-sand-200 flex items-center justify-center text-xs text-charcoal-500 font-medium">{r.first_name[0]}{r.last_name[0]}</div>
+      <AvatarThumb src={r.photo_url} alt={r.first_name} initials={`${r.first_name[0]}${r.last_name[0]}`} size={44} className="ring-2 ring-sand-200 shadow-sm" />
     )},
     { key: 'name',        label: 'Name',        render: r => (
       <div>
@@ -219,6 +226,7 @@ export default function StaffPage() {
     { key: 'actions', label: '', render: r => (
       <div className="flex gap-3">
         <button onClick={() => openPhotoUpload(r)} className="text-charcoal-400 hover:text-purple-500 transition-colors" title="Upload Photo"><Camera size={15} /></button>
+        {r.role === 'teacher' && <button onClick={() => handleResetLogin(r)} className="text-charcoal-400 hover:text-brand-gold transition-colors" title="Reset teacher login"><KeyRound size={15} /></button>}
         <button onClick={() => openEdit(r)} className="text-charcoal-400 hover:text-brand-gold transition-colors"><Pencil size={15} /></button>
         <button onClick={() => setConfirm(r.id)} className="text-charcoal-400 hover:text-danger transition-colors"><Trash2 size={15} /></button>
       </div>
@@ -281,17 +289,19 @@ export default function StaffPage() {
                 />
               </FormField>
               {formPhotoError && <p className="text-xs text-red-600 mt-1">{formPhotoError}</p>}
-              <p className="text-xs text-charcoal-500 mt-1">Max 2MB • JPG, PNG</p>
+              <p className="text-xs text-charcoal-500 mt-1">Max 5MB • JPG, PNG</p>
             </div>
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="First Name" required><input className="input-field" value={form.first_name} onChange={e => set('first_name', e.target.value)} required /></FormField>
             <FormField label="Last Name"  required><input className="input-field" value={form.last_name}  onChange={e => set('last_name',  e.target.value)} required /></FormField>
           </div>
-          <FormField label="Email" required><input className="input-field" type="email" value={form.email} onChange={e => set('email', e.target.value)} required placeholder="teacher@school.edu.gh" /></FormField>
+          <FormField label={form.role === 'teacher' ? 'Email (Optional)' : 'Email'} required={form.role === 'school_admin'}>
+            <input className="input-field" type="email" value={form.email} onChange={e => set('email', e.target.value)} required={form.role === 'school_admin'} placeholder={form.role === 'teacher' ? 'Optional for teacher ID login' : 'admin@school.edu.gh'} />
+          </FormField>
           <FormField label="Phone (+233...)"><input className="input-field" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+233244000000" /></FormField>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="Department"><input className="input-field" value={form.department}  onChange={e => set('department',  e.target.value)} placeholder="Sciences" /></FormField>
             <FormField label="Designation"><input className="input-field" value={form.designation} onChange={e => set('designation', e.target.value)} placeholder="Class Teacher" /></FormField>
           </div>
@@ -331,7 +341,7 @@ export default function StaffPage() {
               className="input-field"
             />
             <p className="text-xs text-charcoal-400 mt-1">
-              Maximum file size: 2MB. Accepted formats: JPG, PNG, WebP
+              Maximum file size: 5MB. Accepted formats: JPG, PNG, WebP
             </p>
           </FormField>
           <div className="flex gap-3 justify-end">

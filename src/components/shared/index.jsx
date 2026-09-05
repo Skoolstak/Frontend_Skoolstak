@@ -1,4 +1,40 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+
+/**
+ * Small round avatar that falls back to initials if the image URL
+ * fails to load (expired signed URL, network error, etc.) instead of
+ * showing the browser's broken-image icon + alt text.
+ */
+export function AvatarThumb({ src, alt, initials, size = 32, className = '' }) {
+  const [failed, setFailed] = useState(false);
+  const dimension = `${size}px`;
+  const initialsSize = size >= 40 ? 'text-sm' : 'text-xs';
+
+  // Reset the failure flag whenever a new src arrives (e.g. after re-upload)
+  // so a stale failure doesn't permanently hide a now-valid image.
+  useEffect(() => { setFailed(false); }, [src]);
+
+  if (!src || failed) {
+    return (
+      <div
+        style={{ width: dimension, height: dimension }}
+        className={`rounded-full bg-sand-200 flex items-center justify-center ${initialsSize} text-charcoal-500 font-medium ${className}`}
+      >
+        {initials}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      onError={() => setFailed(true)}
+      style={{ width: dimension, height: dimension }}
+      className={`rounded-full object-cover ${className}`}
+    />
+  );
+}
 
 /**
  * Reusable stat card used on all dashboards.

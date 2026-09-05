@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { GraduationCap, Plus, Search, Pencil, Trash2, BookOpen, ChevronDown, ChevronUp, Upload, FileSpreadsheet, Camera, CheckCircle2, FileText, Sparkles } from 'lucide-react';
 import {
-  PageHeader, Table, TableSkeleton, StatusBadge,
+  PageHeader, Table, TableSkeleton, StatusBadge, AvatarThumb,
   Modal, FormField, SelectField, EmptyState, ConfirmDialog,
 } from '../../components/shared';
 import api from '../../services/api';
@@ -59,15 +59,15 @@ function StudentForm({ form, setForm, classes, photoFile, setPhotoFile, photoPre
             />
           </FormField>
           {photoError && <p className="text-xs text-red-600 mt-1">{photoError}</p>}
-          <p className="text-xs text-charcoal-500 mt-1">Max 2MB • JPG, PNG</p>
+          <p className="text-xs text-charcoal-500 mt-1">Max 5MB • JPG, PNG</p>
         </div>
       </div>
       
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <FormField label="First Name" required><input className="input-field" value={form.first_name} onChange={e => set('first_name', e.target.value)} required /></FormField>
         <FormField label="Last Name" required><input className="input-field" value={form.last_name} onChange={e => set('last_name', e.target.value)} required /></FormField>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <FormField label="Date of Birth"><input className="input-field" type="date" value={form.dob} onChange={e => set('dob', e.target.value)} /></FormField>
         <FormField label="Class">
           <SelectField value={form.class_id} onChange={e => set('class_id', e.target.value)}
@@ -78,11 +78,28 @@ function StudentForm({ form, setForm, classes, photoFile, setPhotoFile, photoPre
         <SelectField value={form.status} onChange={e => set('status', e.target.value)}
           options={[{value:'active',label:'Active'},{value:'graduated',label:'Graduated'},{value:'withdrawn',label:'Withdrawn'}]} />
       </FormField>
+
+      <div className="p-4 bg-sand-50 border border-sand-200 rounded-xl space-y-3">
+        <p className="text-sm font-semibold text-charcoal-700">Parent Account (Optional)</p>
+        <p className="text-xs text-charcoal-500">Add a parent email to create a parent portal login linked to this student.</p>
+        <FormField label="Parent Email">
+          <input className="input-field" type="email" value={form.parent_email} onChange={e => set('parent_email', e.target.value)} placeholder="parent@example.com" />
+        </FormField>
+        {form.parent_email && (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField label="Parent First Name"><input className="input-field" value={form.parent_first_name} onChange={e => set('parent_first_name', e.target.value)} /></FormField>
+              <FormField label="Parent Last Name"><input className="input-field" value={form.parent_last_name} onChange={e => set('parent_last_name', e.target.value)} /></FormField>
+            </div>
+            <FormField label="Parent Phone"><input className="input-field" value={form.parent_phone} onChange={e => set('parent_phone', e.target.value)} placeholder="+233..." /></FormField>
+          </>
+        )}
+      </div>
     </div>
   );
 }
 
-const EMPTY = { first_name: '', last_name: '', dob: '', class_id: '', status: 'active' };
+const EMPTY = { first_name: '', last_name: '', dob: '', class_id: '', status: 'active', parent_email: '', parent_first_name: '', parent_last_name: '', parent_phone: '' };
 
 export default function StudentsPage() {
   const [students, setStudents] = useState([]);
@@ -212,8 +229,8 @@ export default function StudentsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    if (file.size > 2 * 1024 * 1024) {
-      setPhotoError('File size must be less than 2MB');
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError('File size must be less than 5MB');
       return;
     }
     
@@ -300,9 +317,7 @@ export default function StudentsPage() {
 
   const columns = [
     { key: 'photo',      label: '',       render: r => (
-      r.photo_url 
-        ? <img src={r.photo_url} alt={r.first_name} className="w-8 h-8 rounded-full object-cover" />
-        : <div className="w-8 h-8 rounded-full bg-sand-200 flex items-center justify-center text-xs text-charcoal-500 font-medium">{r.first_name[0]}{r.last_name[0]}</div>
+      <AvatarThumb src={r.photo_url} alt={r.first_name} initials={`${r.first_name[0]}${r.last_name[0]}`} size={44} className="ring-2 ring-sand-200 shadow-sm" />
     )},
     { key: 'name',       label: 'Student',   render: r => (
       <div>
@@ -485,7 +500,7 @@ export default function StudentsPage() {
               className="input-field"
             />
             <p className="text-xs text-charcoal-400 mt-1">
-              Maximum file size: 2MB. Accepted formats: JPG, PNG, WebP
+              Maximum file size: 5MB. Accepted formats: JPG, PNG, WebP
             </p>
           </FormField>
           <div className="flex gap-3 justify-end">

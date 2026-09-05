@@ -94,7 +94,7 @@ export default function AcademicRecords() {
                   <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${GRADE_COLORS[r.overall_grade] || ''}`}>{r.overall_grade}</span>
                 )}
               </div>
-              <div className="grid grid-cols-3 gap-2 text-center mb-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-center mb-3">
                 <div className="bg-sand-50 rounded-lg py-2">
                   <p className="text-lg font-bold text-charcoal-900">{r.average_score ?? '—'}</p>
                   <p className="text-xs text-charcoal-400">Average</p>

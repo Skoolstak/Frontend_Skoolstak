@@ -259,7 +259,7 @@ export default function GradebookPage() {
                 const total = Math.min(100, Number(row.ca_score || 0) + Number(row.exam_score || 0));
                 return (
                   <tr key={row.student_id} className={`border-b border-sand-100 ${row.dirty ? 'bg-amber-50' : ''}`}>
-                    <td className="py-2 px-3 font-medium text-charcoal-900 min-w-[140px]">
+                    <td className="py-2 px-3 font-medium text-charcoal-900 sm:min-w-[140px]">
                       {row.first_name} {row.last_name}
                     </td>
                     {['ca_score','exam_score','participation_score','project_score','mock_score'].map(field => (

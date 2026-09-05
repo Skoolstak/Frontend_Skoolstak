@@ -195,8 +195,8 @@ export default function SubjectsPage() {
             <FormField label="Subject Code">
               <input className="input" value={form.code} onChange={e => set('code', e.target.value)} placeholder="e.g. MATH (optional)"/>
             </FormField>
-            <SelectField label="Class *" value={form.class_id} onChange={v => set('class_id', v)} options={classOptions} placeholder="Select class" required/>
-            <SelectField label="Assigned Teacher" value={form.teacher_id} onChange={v => set('teacher_id', v)} options={teacherOptions} placeholder="Select teacher (optional)"/>
+            <SelectField label="Class *" value={form.class_id} onChange={e => set('class_id', e.target.value)} options={classOptions} placeholder="Select class" required/>
+            <SelectField label="Assigned Teacher" value={form.teacher_id} onChange={e => set('teacher_id', e.target.value)} options={teacherOptions} placeholder="Select teacher (optional)"/>
             <div className="flex items-center gap-2">
               <input type="checkbox" id="is_active" checked={form.is_active} onChange={e => set('is_active', e.target.checked)} className="w-4 h-4"/>
               <label htmlFor="is_active" className="text-sm text-charcoal-700">Active</label>

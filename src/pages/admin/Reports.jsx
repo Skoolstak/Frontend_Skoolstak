@@ -102,7 +102,7 @@ export default function ReportsPage() {
       {/* Filters + Generate */}
       <div className="card mb-6">
         <div className="flex flex-wrap gap-3 items-end">
-          <div className="flex-1 min-w-[160px]">
+          <div className="flex-1 min-w-0 sm:min-w-[160px]">
             <label className="form-label">Class</label>
             <select className="input" value={filter.class_id} onChange={e => setFilter(f => ({ ...f, class_id: e.target.value }))}>
               <option value="">Select class…</option>
@@ -194,7 +194,7 @@ export default function ReportsPage() {
             <div className="flex items-center justify-center py-12"><RefreshCw className="animate-spin text-charcoal-400" size={28}/></div>
           ) : (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div><span className="font-semibold text-charcoal-500">Class:</span> {preview.report.class_name}</div>
                 <div><span className="font-semibold text-charcoal-500">Term:</span> {preview.report.term} · {preview.report.academic_year}</div>
                 <div><span className="font-semibold text-charcoal-500">Position:</span> {preview.report.class_position ? `${preview.report.class_position} / ${preview.report.class_size}` : '—'}</div>

@@ -100,7 +100,7 @@ export default function AttendancePage() {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
         <StatCard label="Present" value={summary.present} icon={CheckCircle} color="bg-green-50 text-green-600" />
         <StatCard label="Absent"  value={summary.absent}  icon={XCircle}     color="bg-red-50 text-danger" />
         <StatCard label="Late"    value={summary.late}    icon={Clock}        color="bg-amber-50 text-amber-600" />

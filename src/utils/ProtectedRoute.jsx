@@ -6,6 +6,9 @@ import { useAuth } from '../store/AuthContext';
 export const ROLE_HOME = {
   super_admin:  '/superadmin',
   school_admin: '/admin',
+  teacher:      '/teacher',
+  student:      '/student',
+  parent:       '/parent',
 };
 
 /**

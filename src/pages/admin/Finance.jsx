@@ -5,7 +5,15 @@ import {
   Modal, FormField, SelectField, TermSelector, StatCard,
 } from '../../components/shared';
 import api from '../../services/api';
-import { supabase } from '../../services/supabase';
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Unable to read receipt file.'));
+    reader.readAsDataURL(file);
+  });
+}
 
 /* ────────────── FEE TYPES TAB ────────────── */
 function FeeTypesTab() {
@@ -66,7 +74,7 @@ function StudentCombobox({ students, value, onChange }) {
   const selected = students.find(s => s.id === value);
   const filtered = query.trim().length === 0 ? [] : students.filter(s =>
     `${s.first_name} ${s.last_name}`.toLowerCase().includes(query.trim().toLowerCase()) ||
-    (s.student_id_number || '').toLowerCase().includes(query.trim().toLowerCase())
+    (s.student_id || '').toLowerCase().includes(query.trim().toLowerCase())
   ).slice(0, 12);
 
   // Close on outside click
@@ -119,7 +127,7 @@ function StudentCombobox({ students, value, onChange }) {
               onMouseEnter={() => setActive(i)}
             >
               <span className="font-medium">{s.first_name} {s.last_name}</span>
-              <span className="text-xs text-[var(--text-soft)]">{s.class_name || s.student_id_number || ''}</span>
+              <span className="text-xs text-[var(--text-soft)]">{s.class_name || s.student_id || ''}</span>
             </li>
           ))}
         </ul>
@@ -198,19 +206,15 @@ function InvoicesTab() {
     try {
       let receiptUrl = payForm.reference;
 
-      // Upload receipt image to Supabase Storage if one was selected
+      // Upload private receipts through the API so browser clients do not need storage write access.
       if (receiptFile) {
-        const ext  = receiptFile.name.split('.').pop();
-        const path = `receipts/${payModal.id}-${Date.now()}.${ext}`;
-        const { error: upErr } = await supabase.storage
-          .from('receipts')
-          .upload(path, receiptFile, { upsert: true });
-        if (upErr) {
-          setUploadErr(`Upload failed: ${upErr.message}`);
-          setSaving(false); return;
-        }
-        const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(path);
-        receiptUrl = urlData?.publicUrl || path;
+        const file = await readFileAsDataUrl(receiptFile);
+        const { data } = await api.post(`/upload/receipt/${payModal.id}`, {
+          file,
+          fileName: receiptFile.name,
+          contentType: receiptFile.type,
+        });
+        receiptUrl = data.path;
       }
 
       const payRes = await api.post(`/finance/invoices/${payModal.id}/pay`, { ...payForm, reference: receiptUrl });

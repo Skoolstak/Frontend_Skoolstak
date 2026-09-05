@@ -144,7 +144,7 @@ export default function SignUpPage() {
             </div>
 
             {/* First / Last name */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="label" htmlFor="first_name">First name</label>
                 <input

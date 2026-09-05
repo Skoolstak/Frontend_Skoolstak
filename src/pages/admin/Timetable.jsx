@@ -86,7 +86,7 @@ export default function TimetablePage() {
         <div className="card animate-pulse h-64" />
       ) : (
         <div className="card overflow-x-auto">
-          <table className="w-full text-sm min-w-[700px]">
+          <table className="w-full text-sm min-w-[560px]">
             <thead>
               <tr className="border-b border-sand-200">
                 <th className="text-left px-3 py-2.5 text-xs font-semibold text-charcoal-500 w-28">Period</th>

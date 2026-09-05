@@ -37,12 +37,14 @@ export function AuthProvider({ children }) {
 
     if (!error) setProfile(data);
     setLoading(false);
+    return error ? null : data;
   }
 
   async function signIn(email, password) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    return data;
+    const signedInProfile = await fetchProfile(data.user.id);
+    return { ...data, profile: signedInProfile };
   }
 
   async function signUp(email, password) {

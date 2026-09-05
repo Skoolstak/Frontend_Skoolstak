@@ -88,6 +88,16 @@ export async function syncOfflineData() {
     isSyncing = false;
   }
 
+  // Persist sync failures server-side so admins can audit data loss
+  if (summary.errors.length > 0) {
+    try {
+      await api.post('/sync-log', {
+        action_type: 'sync_failure',
+        errors: summary.errors,
+      });
+    } catch (_) { /* logging is best-effort */ }
+  }
+
   return summary;
 }
 
