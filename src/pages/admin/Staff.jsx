@@ -124,9 +124,11 @@ export default function StaffPage() {
 
   async function handleBulkDelete() {
     setBulkDeleting(true);
-    const results = await Promise.allSettled(selected.map(id => api.delete(`/staff/${id}`)));
-    const failed = results.filter(r => r.status === 'rejected').length;
-    if (failed > 0) alert(`${results.length - failed} staff member(s) removed. ${failed} failed.`);
+    try {
+      await api.post('/staff/bulk-delete', { ids: selected });
+    } catch (e) {
+      alert(e.response?.data?.error || 'Bulk delete failed.');
+    }
     setSelected([]);
     setBulkDeleting(false);
     load();

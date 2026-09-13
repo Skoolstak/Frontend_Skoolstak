@@ -73,9 +73,11 @@ export default function ClassesPage() {
 
   async function handleBulkDelete() {
     setBulkDeleting(true);
-    const results = await Promise.allSettled(selected.map(id => api.delete(`/classes/${id}`)));
-    const failed = results.filter(r => r.status === 'rejected').length;
-    if (failed > 0) alert(`${results.length - failed} class(es) deleted. ${failed} failed.`);
+    try {
+      await api.post('/classes/bulk-delete', { ids: selected });
+    } catch (e) {
+      alert(e.response?.data?.error || 'Bulk delete failed.');
+    }
     setSelected([]);
     setBulkDeleting(false);
     load();

@@ -86,9 +86,11 @@ export default function SubjectsPage() {
 
   async function handleBulkDelete() {
     setBulkDeleting(true);
-    const results = await Promise.allSettled(selected.map(id => api.delete(`/subjects/${id}`)));
-    const failed = results.filter(r => r.status === 'rejected').length;
-    if (failed > 0) alert(`${results.length - failed} subject(s) deleted. ${failed} failed.`);
+    try {
+      await api.post('/subjects/bulk-delete', { ids: selected });
+    } catch (e) {
+      alert(e.response?.data?.error || 'Bulk delete failed.');
+    }
     setSelected([]);
     setBulkDeleting(false);
     load();
