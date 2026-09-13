@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   BookOpen, Calendar, Award, TrendingUp, Clock, Users, 
   FileText, AlertCircle, CheckCircle2, Target, BookMarked
@@ -84,9 +85,9 @@ export default function StudentDashboard() {
               <Calendar className="text-blue-500" size={18}/>
               Today's Classes
             </h2>
-            <a href="/student/timetable" className="text-xs text-blue-600 hover:underline font-medium">
+            <Link to="/student/timetable" className="text-xs text-blue-600 hover:underline font-medium">
               View Full Timetable →
-            </a>
+            </Link>
           </div>
 
           {loading ? (
@@ -139,14 +140,14 @@ export default function StudentDashboard() {
               { label: 'Assignments', href: '/student/assignments', icon: FileText, color: 'bg-amber-50 text-amber-700 border-amber-200' },
               { label: 'Change Password', href: '/change-password', icon: AlertCircle, color: 'bg-orange-50 text-orange-700 border-orange-200' },
             ].map((link) => (
-              <a
+              <Link
                 key={link.href}
-                href={link.href}
+                to={link.href}
                 className={`flex items-center gap-3 p-3 rounded-xl border ${link.color} hover:opacity-80 transition-opacity`}
               >
                 <link.icon size={20}/>
                 <span className="font-medium text-sm">{link.label}</span>
-              </a>
+              </Link>
             ))}
           </div>
         </div>

@@ -7,7 +7,7 @@ import {
 import api from '../../services/api';
 
 const LEVELS = [
-  'Nursery','KG 1','KG 2',
+  'Creche','Nursery','KG 1','KG 2',
   'Primary 1','Primary 2','Primary 3','Primary 4','Primary 5','Primary 6',
   'JHS 1','JHS 2','JHS 3','SHS 1','SHS 2','SHS 3',
 ];
@@ -29,6 +29,10 @@ export default function ClassesPage() {
   const [excelImporting, setExcelImporting] = useState(false);
   const [excelError, setExcelError] = useState('');
   const [excelResult, setExcelResult] = useState(null);
+  // Multi-select / bulk delete
+  const [selected, setSelected] = useState([]);
+  const [bulkConfirm, setBulkConfirm] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   useEffect(() => { load(); }, []);
   async function load() {
@@ -59,6 +63,24 @@ export default function ClassesPage() {
     catch(e) { console.error(e); }
   }
 
+  function toggleSelect(id) {
+    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }
+
+  function toggleSelectAll() {
+    setSelected(prev => prev.length === filtered.length ? [] : filtered.map(c => c.id));
+  }
+
+  async function handleBulkDelete() {
+    setBulkDeleting(true);
+    const results = await Promise.allSettled(selected.map(id => api.delete(`/classes/${id}`)));
+    const failed = results.filter(r => r.status === 'rejected').length;
+    if (failed > 0) alert(`${results.length - failed} class(es) deleted. ${failed} failed.`);
+    setSelected([]);
+    setBulkDeleting(false);
+    load();
+  }
+
   function openExcelImport() {
     setExcelModal(true);
     setExcelFile(null);
@@ -81,16 +103,17 @@ export default function ClassesPage() {
     setExcelResult(null);
     
     try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64 = reader.result;
-        const res = await api.post('/classes/import-excel', { file: base64 });
-        setExcelResult(res.data);
-        load();
-      };
-      reader.readAsDataURL(excelFile);
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror  = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(excelFile);
+      });
+      const res = await api.post('/classes/import-excel', { file: base64 });
+      setExcelResult(res.data);
+      load();
     } catch (err) {
-      setExcelError(err.response?.data?.error || 'Failed to import Excel file');
+      setExcelError(err.response?.data?.error || err.message || 'Failed to import Excel file');
     } finally {
       setExcelImporting(false);
     }
@@ -102,6 +125,22 @@ export default function ClassesPage() {
   );
 
   const columns = [
+    { key: 'select', label: (
+        <input
+          type="checkbox"
+          className="w-4 h-4 accent-teal-600 cursor-pointer align-middle"
+          checked={filtered.length > 0 && selected.length === filtered.length}
+          onChange={toggleSelectAll}
+          title="Select all"
+        />
+      ), render: r => (
+        <input
+          type="checkbox"
+          className="w-4 h-4 accent-teal-600 cursor-pointer align-middle"
+          checked={selected.includes(r.id)}
+          onChange={() => toggleSelect(r.id)}
+        />
+    )},
     { key: 'name',          label: 'Class Name',  render: r => <span className="font-medium">{r.name}</span> },
     { key: 'level',         label: 'Level' },
     { key: 'teacher_name',  label: 'Class Teacher', render: r => r.teacher_name || <span className="text-charcoal-400">Unassigned</span> },
@@ -153,6 +192,14 @@ export default function ClassesPage() {
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal-400" />
             <input type="text" placeholder="Search classes…" value={search} onChange={e => setSearch(e.target.value)} className="input-field pl-9" />
           </div>
+          {selected.length > 0 && (
+            <button
+              onClick={() => setBulkConfirm(true)}
+              className="ml-auto flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold bg-danger text-white hover:bg-red-800 transition-all active:scale-95"
+            >
+              <Trash2 size={15} /> Delete {selected.length} selected
+            </button>
+          )}
         </div>
         {loading
           ? <TableSkeleton rows={6} cols={4} />
@@ -192,6 +239,11 @@ export default function ClassesPage() {
 
       <ConfirmDialog open={!!confirm} onClose={() => setConfirm(null)} onConfirm={() => handleDelete(confirm)}
         title="Delete Class?" message="Deleting this class will remove the class group. Students in it will be unassigned." confirmLabel="Delete" danger />
+
+      <ConfirmDialog open={bulkConfirm} onClose={() => setBulkConfirm(false)} onConfirm={handleBulkDelete}
+        title={`Delete ${selected.length} Class${selected.length !== 1 ? 'es' : ''}?`}
+        message={`This will permanently delete ${selected.length} selected class${selected.length !== 1 ? 'es' : ''}. Students in them will be unassigned.`}
+        confirmLabel={bulkDeleting ? 'Deleting…' : `Delete ${selected.length}`} danger />
 
       {/* Excel Import Modal */}
       <Modal open={excelModal} onClose={() => setExcelModal(false)} title="Import Classes from Excel">

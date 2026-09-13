@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Users, BookOpen, CalendarCheck, ClipboardList, Clock, AlertCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Users, BookOpen, CalendarCheck, ClipboardList, Clock, AlertCircle, FileText } from 'lucide-react';
 import { StatCard } from '../../components/shared';
 import api from '../../services/api';
 
@@ -78,7 +79,7 @@ export default function TeacherDashboard() {
                     <AlertCircle size={16} className="text-amber-500"/>
                     <span className="text-sm font-medium text-charcoal-800">{cls.name}</span>
                   </div>
-                  <a href="/teacher/attendance" className="text-xs text-amber-700 font-semibold hover:underline">Mark now →</a>
+                  <Link to="/teacher/attendance" className="text-xs text-amber-700 font-semibold hover:underline">Mark now →</Link>
                 </div>
               ))}
             </div>
@@ -90,17 +91,18 @@ export default function TeacherDashboard() {
           <h2 className="font-semibold text-charcoal-800 mb-4 flex items-center gap-2">
             <ClipboardList size={18} className="text-purple-500"/>Quick Actions
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {[
               { label: 'Gradebook',   href: '/teacher/gradebook',   icon: BookOpen,      color: 'bg-blue-50 text-blue-700 border-blue-100' },
               { label: 'Attendance',  href: '/teacher/attendance',  icon: CalendarCheck, color: 'bg-green-50 text-green-700 border-green-100' },
+              { label: 'Assignments', href: '/teacher/assignments', icon: FileText,      color: 'bg-orange-50 text-orange-700 border-orange-100' },
               { label: 'My Classes',  href: '/teacher/classes',     icon: Users,         color: 'bg-purple-50 text-purple-700 border-purple-100' },
               { label: 'Timetable',   href: '/teacher/timetable',   icon: Clock,         color: 'bg-amber-50 text-amber-700 border-amber-100' },
             ].map(item => (
-              <a key={item.href} href={item.href} className={`flex flex-col items-center gap-2 p-4 rounded-xl border ${item.color} hover:opacity-80 transition-opacity`}>
+              <Link key={item.href} to={item.href} className={`flex flex-col items-center gap-2 p-4 rounded-xl border ${item.color} hover:opacity-80 transition-opacity`}>
                 <item.icon size={22}/>
                 <span className="text-sm font-medium">{item.label}</span>
-              </a>
+              </Link>
             ))}
           </div>
         </div>

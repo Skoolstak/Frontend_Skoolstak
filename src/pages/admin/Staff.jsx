@@ -33,6 +33,10 @@ export default function StaffPage() {
   const [excelImporting, setExcelImporting] = useState(false);
   const [excelError, setExcelError] = useState('');
   const [excelResult, setExcelResult] = useState(null);
+  // Multi-select / bulk delete
+  const [selected, setSelected] = useState([]);
+  const [bulkConfirm, setBulkConfirm] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   useEffect(() => { load(); }, []);
   async function load() {
@@ -108,6 +112,24 @@ export default function StaffPage() {
   async function handleDelete(id) {
     try { await api.delete(`/staff/${id}`); load(); }
     catch(e) { console.error(e); }
+  }
+
+  function toggleSelect(id) {
+    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }
+
+  function toggleSelectAll() {
+    setSelected(prev => prev.length === filtered.length ? [] : filtered.map(s => s.id));
+  }
+
+  async function handleBulkDelete() {
+    setBulkDeleting(true);
+    const results = await Promise.allSettled(selected.map(id => api.delete(`/staff/${id}`)));
+    const failed = results.filter(r => r.status === 'rejected').length;
+    if (failed > 0) alert(`${results.length - failed} staff member(s) removed. ${failed} failed.`);
+    setSelected([]);
+    setBulkDeleting(false);
+    load();
   }
 
   async function handleResetLogin(staffMember) {
@@ -189,16 +211,17 @@ export default function StaffPage() {
     setExcelResult(null);
     
     try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64 = reader.result;
-        const res = await api.post('/staff/import-excel', { file: base64 });
-        setExcelResult(res.data);
-        load();
-      };
-      reader.readAsDataURL(excelFile);
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror  = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(excelFile);
+      });
+      const res = await api.post('/staff/import-excel', { file: base64 });
+      setExcelResult(res.data);
+      load();
     } catch (err) {
-      setExcelError(err.response?.data?.error || 'Failed to import Excel file');
+      setExcelError(err.response?.data?.error || err.message || 'Failed to import Excel file');
     } finally {
       setExcelImporting(false);
     }
@@ -210,6 +233,22 @@ export default function StaffPage() {
   );
 
   const columns = [
+    { key: 'select', label: (
+        <input
+          type="checkbox"
+          className="w-4 h-4 accent-teal-600 cursor-pointer align-middle"
+          checked={filtered.length > 0 && selected.length === filtered.length}
+          onChange={toggleSelectAll}
+          title="Select all"
+        />
+      ), render: r => (
+        <input
+          type="checkbox"
+          className="w-4 h-4 accent-teal-600 cursor-pointer align-middle"
+          checked={selected.includes(r.id)}
+          onChange={() => toggleSelect(r.id)}
+        />
+    )},
     { key: 'photo',       label: '',       render: r => (
       <AvatarThumb src={r.photo_url} alt={r.first_name} initials={`${r.first_name[0]}${r.last_name[0]}`} size={44} className="ring-2 ring-sand-200 shadow-sm" />
     )},
@@ -256,6 +295,14 @@ export default function StaffPage() {
             <input type="text" placeholder="Search staff…" value={search} onChange={e => setSearch(e.target.value)} className="input-field pl-9" />
           </div>
           <span className="text-sm text-charcoal-500">{filtered.length} staff member{filtered.length !== 1 ? 's':''}</span>
+          {selected.length > 0 && (
+            <button
+              onClick={() => setBulkConfirm(true)}
+              className="ml-auto flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold bg-danger text-white hover:bg-red-800 transition-all active:scale-95"
+            >
+              <Trash2 size={15} /> Delete {selected.length} selected
+            </button>
+          )}
         </div>
         {loading
           ? <TableSkeleton rows={6} cols={5} />
@@ -323,6 +370,11 @@ export default function StaffPage() {
 
       <ConfirmDialog open={!!confirm} onClose={() => setConfirm(null)} onConfirm={() => handleDelete(confirm)}
         title="Remove Staff Member?" message="This will remove the staff member's account and profile." confirmLabel="Remove" danger />
+
+      <ConfirmDialog open={bulkConfirm} onClose={() => setBulkConfirm(false)} onConfirm={handleBulkDelete}
+        title={`Remove ${selected.length} Staff Member${selected.length !== 1 ? 's' : ''}?`}
+        message={`This will permanently remove ${selected.length} selected staff account${selected.length !== 1 ? 's' : ''} and profile${selected.length !== 1 ? 's' : ''}.`}
+        confirmLabel={bulkDeleting ? 'Removing…' : `Remove ${selected.length}`} danger />
 
       {/* Photo Upload Modal */}
       <Modal open={!!photoModal} onClose={() => setPhotoModal(null)} title={photoModal ? `Upload Photo — ${photoModal.first_name} ${photoModal.last_name}` : ''}>

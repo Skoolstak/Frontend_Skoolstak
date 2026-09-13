@@ -26,6 +26,10 @@ export default function SubjectsPage() {
   const [excelImporting, setExcelImporting] = useState(false);
   const [excelError, setExcelError] = useState('');
   const [excelResult, setExcelResult] = useState(null);
+  // Multi-select / bulk delete
+  const [selected, setSelected] = useState([]);
+  const [bulkConfirm, setBulkConfirm] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -72,6 +76,24 @@ export default function SubjectsPage() {
     finally { setConfirm(null); }
   }
 
+  function toggleSelect(id) {
+    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }
+
+  function toggleSelectAll() {
+    setSelected(prev => prev.length === filtered.length ? [] : filtered.map(s => s.id));
+  }
+
+  async function handleBulkDelete() {
+    setBulkDeleting(true);
+    const results = await Promise.allSettled(selected.map(id => api.delete(`/subjects/${id}`)));
+    const failed = results.filter(r => r.status === 'rejected').length;
+    if (failed > 0) alert(`${results.length - failed} subject(s) deleted. ${failed} failed.`);
+    setSelected([]);
+    setBulkDeleting(false);
+    load();
+  }
+
   function openExcelImport() {
     setExcelModal(true);
     setExcelFile(null);
@@ -94,19 +116,20 @@ export default function SubjectsPage() {
     setExcelResult(null);
     
     try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64 = reader.result;
-        // If a class filter is active, use it for all subjects
-        const payload = { file: base64 };
-        if (classFilter) payload.class_id = classFilter;
-        const res = await api.post('/subjects/import-excel', payload);
-        setExcelResult(res.data);
-        load();
-      };
-      reader.readAsDataURL(excelFile);
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror  = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(excelFile);
+      });
+      // If a class filter is active, use it for all subjects
+      const payload = { file: base64 };
+      if (classFilter) payload.class_id = classFilter;
+      const res = await api.post('/subjects/import-excel', payload);
+      setExcelResult(res.data);
+      load();
     } catch (err) {
-      setExcelError(err.response?.data?.error || 'Failed to import Excel file');
+      setExcelError(err.response?.data?.error || err.message || 'Failed to import Excel file');
     } finally {
       setExcelImporting(false);
     }
@@ -123,6 +146,22 @@ export default function SubjectsPage() {
   const teacherOptions = teachers.map(t => ({ value: t.user_profile_id, label: `${t.first_name || ''} ${t.last_name || ''}`.trim() }));
 
   const columns = [
+    { key: 'select', header: (
+        <input
+          type="checkbox"
+          className="w-4 h-4 accent-teal-600 cursor-pointer align-middle"
+          checked={filtered.length > 0 && selected.length === filtered.length}
+          onChange={toggleSelectAll}
+          title="Select all"
+        />
+      ), render: s => (
+        <input
+          type="checkbox"
+          className="w-4 h-4 accent-teal-600 cursor-pointer align-middle"
+          checked={selected.includes(s.id)}
+          onChange={() => toggleSelect(s.id)}
+        />
+    )},
     { key: 'name',         header: 'Subject',     render: s => <span className="font-medium text-charcoal-900">{s.name}</span> },
     { key: 'code',         header: 'Code',        render: s => s.code ? <span className="badge badge-outline">{s.code}</span> : <span className="text-charcoal-400">—</span> },
     { key: 'class_name',   header: 'Class',       render: s => s.class_name || '—' },
@@ -172,6 +211,14 @@ export default function SubjectsPage() {
           <option value="">All Classes</option>
           {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
+        {selected.length > 0 && (
+          <button
+            onClick={() => setBulkConfirm(true)}
+            className="flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold bg-danger text-white hover:bg-red-800 transition-all active:scale-95"
+          >
+            <Trash2 size={15} /> Delete {selected.length} selected
+          </button>
+        )}
       </div>
 
       {loading
@@ -218,6 +265,18 @@ export default function SubjectsPage() {
           danger
           onConfirm={() => handleDelete(confirm.id)}
           onCancel={() => setConfirm(null)}
+        />
+      )}
+
+      {/* Confirm Bulk Delete */}
+      {bulkConfirm && (
+        <ConfirmDialog
+          title={`Delete ${selected.length} Subject${selected.length !== 1 ? 's' : ''}`}
+          message={`This will permanently delete ${selected.length} selected subject${selected.length !== 1 ? 's' : ''} and their grade records.`}
+          confirmLabel={bulkDeleting ? 'Deleting…' : `Delete ${selected.length}`}
+          danger
+          onConfirm={() => { handleBulkDelete(); setBulkConfirm(false); }}
+          onCancel={() => setBulkConfirm(false)}
         />
       )}
 
