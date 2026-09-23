@@ -20,6 +20,9 @@ function FeeTypesTab() {
   const [types,   setTypes]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal,   setModal]   = useState(false);
+  const [editModal, setEditModal] = useState(null); // fee type row being edited, or null
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const [form,    setForm]    = useState({ name:'', amount:'', frequency:'termly' });
   const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState('');
@@ -32,10 +35,32 @@ function FeeTypesTab() {
     try { await api.post('/finance/fee-types', form); load(); setModal(false); setForm({name:'',amount:'',frequency:'termly'}); }
     catch(err){ setError(err.response?.data?.error||'Failed to save.'); } finally{setSaving(false);}
   }
+  function openEdit(r) {
+    setError('');
+    setForm({ name: r.name, amount: String(r.amount), frequency: r.frequency });
+    setEditModal(r);
+  }
+  async function handleUpdate(e) {
+    e.preventDefault(); setError(''); setSaving(true);
+    try { await api.put(`/finance/fee-types/${editModal.id}`, form); load(); setEditModal(null); }
+    catch(err){ setError(err.response?.data?.error||'Failed to save.'); } finally{setSaving(false);}
+  }
+  async function handleDelete() {
+    setDeleting(true);
+    try { await api.delete(`/finance/fee-types/${deleteConfirm.id}`); load(); setDeleteConfirm(null); }
+    catch(err){ alert(err.response?.data?.error || 'Failed to delete fee type.'); }
+    finally { setDeleting(false); }
+  }
   const columns = [
     { key:'name',      label:'Fee Type',   render: r => <span className="font-medium">{r.name}</span> },
     { key:'amount',    label:'Amount',     render: r => <GHSAmount amount={r.amount} className="font-semibold" /> },
     { key:'frequency', label:'Frequency',  render: r => r.frequency },
+    { key:'actions',   label:'', render: r => (
+      <div className="flex gap-1 justify-end">
+        <button onClick={() => openEdit(r)} className="btn-row-icon text-charcoal-400 hover:text-brand-gold" title="Edit"><Pencil size={16} /></button>
+        <button onClick={() => setDeleteConfirm(r)} className="btn-row-icon text-charcoal-400 hover:text-danger" title="Delete"><Trash2 size={16} /></button>
+      </div>
+    )},
   ];
   return (
     <div>
@@ -59,6 +84,34 @@ function FeeTypesTab() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      <Modal open={!!editModal} onClose={() => setEditModal(null)} title="Edit Fee Type" size="sm">
+        {error && <p className="text-sm text-danger bg-red-50 px-4 py-2 rounded-xl mb-4">{error}</p>}
+        <form onSubmit={handleUpdate} className="space-y-4">
+          <FormField label="Fee Name" required><input className="input-field" value={form.name} onChange={e=>set('name',e.target.value)} required placeholder="E.g. Feeding Fee"/></FormField>
+          <FormField label="Amount (₵)" required><input className="input-field" type="number" step="0.01" min="0" value={form.amount} onChange={e=>set('amount',e.target.value)} required/></FormField>
+          <FormField label="Frequency">
+            <SelectField value={form.frequency} onChange={e=>set('frequency',e.target.value)}
+              options={[{value:'termly',label:'Termly'},{value:'monthly',label:'Monthly'},{value:'once',label:'One-off'}]} />
+          </FormField>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => setEditModal(null)} className="btn-secondary">Cancel</button>
+            <button type="submit" disabled={saving} className="btn-primary flex items-center gap-2">
+              {saving && <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"/>}Save Changes
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Delete Fee Type?" size="sm">
+        <p className="text-sm text-charcoal-600 mb-5">This will permanently remove <strong>{deleteConfirm?.name}</strong>. This cannot be undone.</p>
+        <div className="flex justify-end gap-3">
+          <button type="button" onClick={() => setDeleteConfirm(null)} className="btn-secondary">Cancel</button>
+          <button type="button" disabled={deleting} onClick={handleDelete} className="btn-primary bg-danger hover:bg-red-700">
+            {deleting ? 'Removing…' : 'Delete'}
+          </button>
+        </div>
       </Modal>
     </div>
   );
@@ -474,6 +527,8 @@ function CashFlowTab() {
   const [entries,  setEntries]  = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [modal,    setModal]    = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const [form,     setForm]     = useState({ type:'in', category:'', amount:'', description:'', date: new Date().toISOString().split('T')[0] });
   const [saving,   setSaving]   = useState(false);
   const [totals,   setTotals]   = useState({ in:0, out:0 });
@@ -495,6 +550,12 @@ function CashFlowTab() {
     try { await api.post('/finance/cashflow', form); load(); setModal(false); setForm({type:'in',category:'',amount:'',description:'',date:new Date().toISOString().split('T')[0]}); }
     catch(err){console.error(err);} finally{setSaving(false);}
   }
+  async function handleDelete() {
+    setDeleting(true);
+    try { await api.delete(`/finance/cash-flow/${deleteConfirm.id}`); load(); setDeleteConfirm(null); }
+    catch(err){ alert(err.response?.data?.error || 'Failed to delete entry.'); }
+    finally { setDeleting(false); }
+  }
 
   const columns = [
     { key:'date',        label:'Date',        render: r => new Date(r.date).toLocaleDateString('en-GH') },
@@ -502,6 +563,9 @@ function CashFlowTab() {
     { key:'category',    label:'Category' },
     { key:'description', label:'Description', render: r => r.description||'—' },
     { key:'amount',      label:'Amount',      render: r => <GHSAmount amount={r.amount} className={`font-semibold ${r.type==='in'?'text-green-700':'text-danger'}`}/> },
+    { key:'actions',     label:'', render: r => (
+      <button onClick={() => setDeleteConfirm(r)} className="btn-row-icon text-charcoal-400 hover:text-danger" title="Delete"><Trash2 size={16} /></button>
+    )},
   ];
 
   return (
@@ -531,6 +595,16 @@ function CashFlowTab() {
             <button type="submit" disabled={saving} className="btn-primary">Add Entry</button>
           </div>
         </form>
+      </Modal>
+
+      <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Delete Entry?" size="sm">
+        <p className="text-sm text-charcoal-600 mb-5">This will permanently remove this cash flow entry. This cannot be undone.</p>
+        <div className="flex justify-end gap-3">
+          <button type="button" onClick={() => setDeleteConfirm(null)} className="btn-secondary">Cancel</button>
+          <button type="button" disabled={deleting} onClick={handleDelete} className="btn-primary bg-danger hover:bg-red-700">
+            {deleting ? 'Removing…' : 'Delete'}
+          </button>
+        </div>
       </Modal>
     </div>
   );
