@@ -4,7 +4,7 @@ import {
   PageHeader, Table, TableSkeleton, StatusBadge, GHSAmount,
   Modal, FormField, SelectField, TermSelector, StatCard,
 } from '../../components/shared';
-import api from '../../services/api';
+import api, { openPdf } from '../../services/api';
 
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -157,6 +157,7 @@ function InvoicesTab() {
   const [receiptFile, setReceiptFile] = useState(null);   // File object
   const [receiptPreview, setReceiptPreview] = useState(null); // object URL
   const [uploadErr,   setUploadErr]   = useState('');
+  const [payErr,      setPayErr]      = useState('');
   const fileInputRef = useRef(null);
 
   function handleReceiptPick(e) {
@@ -202,7 +203,7 @@ function InvoicesTab() {
     catch(err){console.error(err);} finally{setSaving(false);}
   }
   async function handlePay(e) {
-    e.preventDefault(); setSaving(true); setUploadErr('');
+    e.preventDefault(); setSaving(true); setUploadErr(''); setPayErr('');
     try {
       let receiptUrl = payForm.reference;
 
@@ -220,12 +221,13 @@ function InvoicesTab() {
       const payRes = await api.post(`/finance/invoices/${payModal.id}/pay`, { ...payForm, reference: receiptUrl });
       const paymentId = payRes.data.payment?.id;
       setPayDone({ student_name: payModal.student_name, amount: payForm.amount, reference: receiptUrl, method: payForm.method, paymentId });
+      setTimeout(() => setPayDone(null), 5000);
       loadInvoices();
       setPayModal(null);
       setPayForm({ amount:'', method:'mtn_momo', reference:'' });
       clearReceipt();
     }
-    catch(err){ console.error(err); } finally { setSaving(false); }
+    catch(err){ setPayErr(err.response?.data?.error || err.message || 'Failed to record payment.'); } finally { setSaving(false); }
   }
 
   const columns = [
@@ -236,18 +238,16 @@ function InvoicesTab() {
     { key:'status',       label:'Status',    render: r => <StatusBadge status={r.status} /> },
     { key:'actions',      label:'', render: r => (
       <div className="flex gap-2 items-center">
-        <a 
-          href={`${api.defaults.baseURL}/finance/invoice/${r.id}/pdf`}
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
+          onClick={() => openPdf(`/finance/invoice/${r.id}/pdf`).catch(console.error)}
           className="text-charcoal-400 hover:text-blue-500 transition-colors"
           title="Download Invoice PDF"
         >
           <FileDown size={15} />
-        </a>
+        </button>
         {r.status !== 'paid' && (
           <button 
-            onClick={() => { setPayModal(r); setPayForm({amount: String(Number(r.amount) - Number(r.amount_paid||0)), method:'mtn_momo', reference:''}); }} 
+            onClick={() => { setPayModal(r); setPayForm({amount: String(Number(r.amount) - Number(r.amount_paid||0)), method:'mtn_momo', reference:''}); setPayErr(''); clearReceipt(); }} 
             className="text-xs text-brand-gold hover:underline font-medium"
           >
             Record Payment
@@ -286,23 +286,23 @@ function InvoicesTab() {
 
       {/* Receipt confirmation toast */}
       {payDone && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 px-5 py-4 shadow-xl max-w-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+          <div className="pointer-events-auto flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 px-5 py-4 shadow-xl max-w-sm">
           <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-green-500 text-white text-lg font-bold">✓</div>
           <div className="flex-1">
             <p className="font-semibold text-green-800">Payment recorded — Marked as Paid</p>
             <p className="mt-0.5 text-sm text-green-700">{payDone.student_name} · ₵{Number(payDone.amount).toLocaleString()}</p>
             {payDone.paymentId && (
-              <a 
-                href={`${api.defaults.baseURL}/finance/receipt/${payDone.paymentId}/pdf`}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={() => openPdf(`/finance/receipt/${payDone.paymentId}/pdf`).catch(console.error)}
                 className="mt-2 inline-flex items-center gap-1 text-xs text-green-800 hover:text-green-900 font-medium underline"
               >
                 <FileDown size={12} /> Download Receipt
-              </a>
+              </button>
             )}
           </div>
           <button onClick={() => setPayDone(null)} className="ml-auto text-green-500 hover:text-green-700 text-lg leading-none">×</button>
+          </div>
         </div>
       )}
 
@@ -319,6 +319,7 @@ function InvoicesTab() {
         </div>
 
         <form onSubmit={handlePay} className="space-y-4">
+          {payErr && <p className="text-sm text-danger bg-red-50 px-4 py-2 rounded-xl">{payErr}</p>}
           <FormField label="Payment Method" required>
             <SelectField value={payForm.method} onChange={e => setPayForm(f => ({...f, method: e.target.value}))}
               options={[
@@ -375,7 +376,7 @@ function InvoicesTab() {
                 )}
                 <div className="flex items-center justify-between px-3 py-2 bg-[rgba(15,118,110,0.06)]">
                   <span className="text-xs text-[var(--text-soft)]">{receiptFile.name} &middot; {(receiptFile.size/1024).toFixed(0)} KB</span>
-                  <button type="button" onClick={clearReceipt} className="text-[var(--text-soft)] hover:text-red-500 transition-colors"><X size={15}/></button>
+                  <button type="button" onClick={clearReceipt} className="btn-row-icon text-[var(--text-soft)] hover:text-red-500"><X size={16}/></button>
                 </div>
               </div>
             )}

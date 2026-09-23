@@ -114,6 +114,13 @@ export default function ClassesPage() {
       const res = await api.post('/classes/import-excel', { file: base64 });
       setExcelResult(res.data);
       load();
+      if (!res.data.failed) {
+        setTimeout(() => {
+          setExcelModal(false);
+          setExcelFile(null);
+          setExcelResult(null);
+        }, 2000);
+      }
     } catch (err) {
       setExcelError(err.response?.data?.error || err.message || 'Failed to import Excel file');
     } finally {
@@ -151,9 +158,9 @@ export default function ClassesPage() {
     )},
     { key: 'capacity',      label: 'Capacity', render: r => r.capacity || '—' },
     { key: 'actions', label: '', render: r => (
-      <div className="flex gap-3">
-        <button onClick={() => openEdit(r)} className="text-charcoal-400 hover:text-brand-gold transition-colors"><Pencil size={15} /></button>
-        <button onClick={() => setConfirm(r.id)} className="text-charcoal-400 hover:text-danger transition-colors"><Trash2 size={15} /></button>
+      <div className="flex gap-1">
+        <button onClick={() => openEdit(r)} className="btn-row-icon text-charcoal-400 hover:text-brand-gold" title="Edit"><Pencil size={16} /></button>
+        <button onClick={() => setConfirm(r.id)} className="btn-row-icon text-charcoal-400 hover:text-danger" title="Delete"><Trash2 size={16} /></button>
       </div>
     )},
   ];
@@ -258,7 +265,9 @@ export default function ClassesPage() {
             </p>
             {excelResult.errors && excelResult.errors.length > 0 && (
               <ul className="mt-2 text-xs text-green-700 list-disc list-inside">
-                {excelResult.errors.slice(0, 5).map((err, i) => <li key={i}>{JSON.stringify(err)}</li>)}
+                {excelResult.errors.slice(0, 5).map((err, i) => (
+                  <li key={i}>{typeof err === 'string' ? err : `Row ${err.row ?? '?'}: ${err.error || JSON.stringify(err)}`}</li>
+                ))}
               </ul>
             )}
           </div>

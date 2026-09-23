@@ -149,7 +149,7 @@
   }
 
   .btn-icon {
-    @apply inline-flex h-9 w-9 items-center justify-center rounded-xl transition-colors duration-200;
+    @apply inline-flex h-11 w-11 items-center justify-center rounded-xl transition-colors duration-200;
     background: rgba(255, 255, 255, 0.72);
     border: 1px solid var(--line-soft);
     color: var(--text-body);
@@ -160,6 +160,12 @@
     color: var(--text-strong);
     border-color: var(--line-strong);
   }
+
+  /* Bare icon-only action buttons (row actions in tables) — WCAG 44px min tap target */
+  .btn-row-icon {
+    @apply inline-flex h-10 w-10 items-center justify-center rounded-lg transition-colors;
+  }
+
 
   .form-label {
     @apply mb-2 block text-[12px] font-semibold;

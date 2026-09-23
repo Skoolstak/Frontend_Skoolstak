@@ -46,20 +46,21 @@ function ItemTab({ filterTypes, singular, plural, showTypeCol, addTypes }) {
   const EMPTY = { title:'', author:'', book_type: defaultType, quantity:'' };
   const [form,    setForm]    = useState(EMPTY);
   const [saving,  setSaving]  = useState(false);
+  const [error,   setError]   = useState('');
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, []);
   async function load() { setLoading(true); try { const {data}=await api.get('/library/books'); setBooks((data.books||[]).filter(b=>filterTypes.includes(b.book_type))); } catch(e){console.error(e);} finally{setLoading(false);} }
   function set(k,v) { setForm(f=>({...f,[k]:v})); }
-  function openAdd()   { setForm(EMPTY); setModal('add'); }
-  function openEdit(b) { setForm({ title:b.title, author:b.author||'', book_type:b.book_type, quantity:b.quantity }); setModal(b); }
+  function openAdd()   { setForm(EMPTY); setError(''); setModal('add'); }
+  function openEdit(b) { setForm({ title:b.title, author:b.author||'', book_type:b.book_type, quantity:b.quantity }); setError(''); setModal(b); }
   async function handleSave(e) {
-    e.preventDefault(); setSaving(true);
+    e.preventDefault(); setSaving(true); setError('');
     try {
       if(modal==='add') await api.post('/library/books', form);
       else await api.put(`/library/books/${modal.id}`, form);
       load(); setModal(null);
-    } catch(err){console.error(err);} finally{setSaving(false);}
+    } catch(err){ setError(err.response?.data?.error || 'Failed to save.'); } finally{setSaving(false);}
   }
 
   const filtered = books.filter(b =>
@@ -95,6 +96,7 @@ function ItemTab({ filterTypes, singular, plural, showTypeCol, addTypes }) {
 
       <Modal open={!!modal} onClose={()=>setModal(null)} title={modal==='add'?`Add ${singular}`:`Edit ${singular}`} size="sm">
         <form onSubmit={handleSave} className="space-y-4">
+          {error && <p className="text-sm text-danger bg-red-50 px-4 py-2 rounded-xl">{error}</p>}
           <FormField label="Title" required><input className="input-field" value={form.title} onChange={e=>set('title',e.target.value)} required/></FormField>
           <FormField label="Author / Reference"><input className="input-field" value={form.author} onChange={e=>set('author',e.target.value)} placeholder="Optional"/></FormField>
           {showTypeCol && (

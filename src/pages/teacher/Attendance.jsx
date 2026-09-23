@@ -293,7 +293,7 @@ export default function TeacherAttendance() {
                   </div>
 
                   <div className="flex gap-2">
-                    {['Present', 'Absent', 'Late', 'Excused'].map((status) => (
+                    {['Present', 'Absent', 'Late'].map((status) => (
                       <button
                         key={status}
                         onClick={() => handleStatusChange(student.id, status)}

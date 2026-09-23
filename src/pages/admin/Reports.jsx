@@ -3,7 +3,7 @@ import { FileText, RefreshCw, Eye, Download, CheckCircle, XCircle } from 'lucide
 import {
   PageHeader, TableSkeleton, EmptyState, Modal, FormField,
 } from '../../components/shared';
-import api from '../../services/api';
+import api, { openPdf as openPdfBlob } from '../../services/api';
 
 const GRADE_COLORS = {
   A1: 'bg-green-100 text-green-800', B2: 'bg-blue-100 text-blue-800',
@@ -78,8 +78,7 @@ export default function ReportsPage() {
   }
 
   function openPdf(reportId) {
-    const base = api.defaults?.baseURL || process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-    window.open(`${base}/reports/${reportId}/pdf`, '_blank');
+    openPdfBlob(`/reports/${reportId}/pdf`).catch(() => setError('Failed to open PDF.'));
   }
 
   async function saveRemarks(e) {

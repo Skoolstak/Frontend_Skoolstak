@@ -72,7 +72,7 @@ export default function SubjectsPage() {
 
   async function handleDelete(id) {
     try { await api.delete(`/subjects/${id}`); load(); }
-    catch (e) { console.error(e); }
+    catch (e) { setError(e.response?.data?.error || 'Failed to delete subject.'); }
     finally { setConfirm(null); }
   }
 
@@ -88,12 +88,12 @@ export default function SubjectsPage() {
     setBulkDeleting(true);
     try {
       await api.post('/subjects/bulk-delete', { ids: selected });
+      setSelected([]);
+      load();
     } catch (e) {
       alert(e.response?.data?.error || 'Bulk delete failed.');
     }
-    setSelected([]);
     setBulkDeleting(false);
-    load();
   }
 
   function openExcelImport() {
@@ -130,6 +130,13 @@ export default function SubjectsPage() {
       const res = await api.post('/subjects/import-excel', payload);
       setExcelResult(res.data);
       load();
+      if (!res.data.failed) {
+        setTimeout(() => {
+          setExcelModal(false);
+          setExcelFile(null);
+          setExcelResult(null);
+        }, 2000);
+      }
     } catch (err) {
       setExcelError(err.response?.data?.error || err.message || 'Failed to import Excel file');
     } finally {
@@ -223,6 +230,8 @@ export default function SubjectsPage() {
         )}
       </div>
 
+      {error && !modal && <p className="mb-4 text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
+
       {loading
         ? <TableSkeleton cols={5}/>
         : filtered.length === 0
@@ -293,7 +302,9 @@ export default function SubjectsPage() {
             </p>
             {excelResult.errors && excelResult.errors.length > 0 && (
               <ul className="mt-2 text-xs text-green-700 list-disc list-inside">
-                {excelResult.errors.slice(0, 5).map((err, i) => <li key={i}>{JSON.stringify(err)}</li>)}
+                {excelResult.errors.slice(0, 5).map((err, i) => (
+                  <li key={i}>{typeof err === 'string' ? err : `Row ${err.row ?? '?'}: ${err.error || JSON.stringify(err)}`}</li>
+                ))}
               </ul>
             )}
           </div>

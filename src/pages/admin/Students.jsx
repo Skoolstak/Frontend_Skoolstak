@@ -329,6 +329,13 @@ export default function StudentsPage() {
       const res = await api.post('/students/import-excel', { file: base64 });
       setExcelResult(res.data);
       load();
+      if (!res.data.failed) {
+        setTimeout(() => {
+          setExcelModal(false);
+          setExcelFile(null);
+          setExcelResult(null);
+        }, 2000);
+      }
     } catch (err) {
       setExcelError(err.response?.data?.error || err.message || 'Failed to import Excel file');
     } finally {
@@ -370,14 +377,14 @@ export default function StudentsPage() {
     { key: 'dob',        label: 'Date of Birth', render: r => r.dob ? new Date(r.dob).toLocaleDateString('en-GH') : '—' },
     { key: 'status',     label: 'Status',    render: r => <StatusBadge status={r.status} /> },
     { key: 'actions',    label: '', render: r => (
-      <div className="flex gap-2">
-        <button onClick={() => openPhotoUpload(r)} className="text-charcoal-400 hover:text-purple-500 transition-colors" title="Upload Photo"><Camera size={15} /></button>
-        <button onClick={() => openHistory(r)} className="text-charcoal-400 hover:text-blue-500 transition-colors" title="Academic History"><BookOpen size={15} /></button>
-        <button onClick={() => openEdit(r)} className="text-charcoal-400 hover:text-brand-gold transition-colors" title="Edit"><Pencil size={15} /></button>
+      <div className="flex gap-1">
+        <button onClick={() => openPhotoUpload(r)} className="btn-row-icon text-charcoal-400 hover:text-purple-500" title="Upload Photo"><Camera size={16} /></button>
+        <button onClick={() => openHistory(r)} className="btn-row-icon text-charcoal-400 hover:text-blue-500" title="Academic History"><BookOpen size={16} /></button>
+        <button onClick={() => openEdit(r)} className="btn-row-icon text-charcoal-400 hover:text-brand-gold" title="Edit"><Pencil size={16} /></button>
         {r.status !== 'alumni' && (
-          <button onClick={() => { setGradConfirm(r); setGradYear(String(new Date().getFullYear())); }} className="text-charcoal-400 hover:text-green-600 transition-colors" title="Graduate"><GraduationCap size={15} /></button>
+          <button onClick={() => { setGradConfirm(r); setGradYear(String(new Date().getFullYear())); }} className="btn-row-icon text-charcoal-400 hover:text-green-600" title="Graduate"><GraduationCap size={16} /></button>
         )}
-        <button onClick={() => setConfirm(r.id)} className="text-charcoal-400 hover:text-danger transition-colors" title="Delete"><Trash2 size={15} /></button>
+        <button onClick={() => setConfirm(r.id)} className="btn-row-icon text-charcoal-400 hover:text-danger" title="Delete"><Trash2 size={16} /></button>
       </div>
     )},
   ];
@@ -583,7 +590,9 @@ export default function StudentsPage() {
             </p>
             {excelResult.errors && excelResult.errors.length > 0 && (
               <ul className="mt-2 text-xs text-green-700 list-disc list-inside">
-                {excelResult.errors.map((err, i) => <li key={i}>{err}</li>)}
+                {excelResult.errors.map((err, i) => (
+                  <li key={i}>{typeof err === 'string' ? err : `Row ${err.row ?? '?'}: ${err.error || JSON.stringify(err)}`}</li>
+                ))}
               </ul>
             )}
           </div>

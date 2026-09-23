@@ -33,7 +33,7 @@ export function AuthProvider({ children }) {
       .from('user_profiles')
       .select('*')
       .eq('auth_user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (!error) setProfile(data);
     setLoading(false);

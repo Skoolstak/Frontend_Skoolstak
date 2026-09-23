@@ -21,3 +21,26 @@ api.interceptors.request.use(async (config) => {
 });
 
 export default api;
+
+// PDF endpoints require the auth Bearer header, so a plain <a href> or
+// window.open(url) can't be used directly (browser navigation sends no
+// Authorization header) — fetch as a blob through axios instead, then open it.
+export async function openPdf(path) {
+  const res = await api.get(path, { responseType: 'blob' });
+  const contentType = res.headers['content-type'] || '';
+
+  // Server returned a JSON error instead of a PDF (e.g. generation failed) —
+  // surface the real message instead of silently opening a broken "PDF".
+  if (!contentType.includes('application/pdf')) {
+    const text = await res.data.text();
+    let message = 'Failed to generate PDF.';
+    try { message = JSON.parse(text).error || message; } catch (_) {}
+    throw new Error(message);
+  }
+
+  const blob = new Blob([res.data], { type: 'application/pdf' });
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+

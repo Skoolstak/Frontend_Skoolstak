@@ -7,17 +7,17 @@ const DAYS    = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
 const PERIODS = [1,2,3,4,5,6,7,8,9,10,11];
 
 const PERIOD_LABELS = {
-  1:  '7:30 – 8:15',
-  2:  '8:15 – 9:00',
-  3:  '9:00 – 9:45',
-  4:  '9:45 – 10:30',
-  5:  '10:45 – 11:30', // after morning break
-  6:  '11:30 – 12:15',
-  7:  '12:15 – 1:00',
-  8:  '2:00 – 2:45',   // after lunch
-  9:  '2:45 – 3:30',
-  10: '3:30 – 4:15',
-  11: '4:30 – 6:00',   // afternoon / remedial / extra-curricular
+  1:  '06:00 – 06:45',
+  2:  '06:45 – 07:30',
+  3:  '07:30 – 08:15',
+  4:  '08:15 – 09:00',
+  5:  '09:15 – 10:00',  // after morning break
+  6:  '10:00 – 10:45',
+  7:  '10:45 – 11:30',
+  8:  '12:30 – 13:15',  // after lunch
+  9:  '13:15 – 14:00',
+  10: '14:00 – 14:45',
+  11: '15:00 – 18:00',   // afternoon / remedial / extra-curricular
 };
 
 export default function TimetablePage() {

@@ -31,6 +31,11 @@ export function ProtectedRoute({ children, allowedRoles }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // No profile row for this auth user — can't verify role, so deny access.
+  if (allowedRoles && !profile) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
   if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
     // Redirect to their correct home dashboard
     return <Navigate to={ROLE_HOME[profile.role] || '/login'} replace />;

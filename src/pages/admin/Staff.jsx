@@ -222,6 +222,13 @@ export default function StaffPage() {
       const res = await api.post('/staff/import-excel', { file: base64 });
       setExcelResult(res.data);
       load();
+      if (!res.data.failed) {
+        setTimeout(() => {
+          setExcelModal(false);
+          setExcelFile(null);
+          setExcelResult(null);
+        }, 2000);
+      }
     } catch (err) {
       setExcelError(err.response?.data?.error || err.message || 'Failed to import Excel file');
     } finally {
@@ -265,11 +272,11 @@ export default function StaffPage() {
     { key: 'department',  label: 'Department',   render: r => r.department  || '—' },
     { key: 'phone',       label: 'Phone',        render: r => r.phone || '—' },
     { key: 'actions', label: '', render: r => (
-      <div className="flex gap-3">
-        <button onClick={() => openPhotoUpload(r)} className="text-charcoal-400 hover:text-purple-500 transition-colors" title="Upload Photo"><Camera size={15} /></button>
-        {r.role === 'teacher' && <button onClick={() => handleResetLogin(r)} className="text-charcoal-400 hover:text-brand-gold transition-colors" title="Reset teacher login"><KeyRound size={15} /></button>}
-        <button onClick={() => openEdit(r)} className="text-charcoal-400 hover:text-brand-gold transition-colors"><Pencil size={15} /></button>
-        <button onClick={() => setConfirm(r.id)} className="text-charcoal-400 hover:text-danger transition-colors"><Trash2 size={15} /></button>
+      <div className="flex gap-1">
+        <button onClick={() => openPhotoUpload(r)} className="btn-row-icon text-charcoal-400 hover:text-purple-500" title="Upload Photo"><Camera size={16} /></button>
+        {r.role === 'teacher' && <button onClick={() => handleResetLogin(r)} className="btn-row-icon text-charcoal-400 hover:text-brand-gold" title="Reset teacher login"><KeyRound size={16} /></button>}
+        <button onClick={() => openEdit(r)} className="btn-row-icon text-charcoal-400 hover:text-brand-gold" title="Edit"><Pencil size={16} /></button>
+        <button onClick={() => setConfirm(r.id)} className="btn-row-icon text-charcoal-400 hover:text-danger" title="Delete"><Trash2 size={16} /></button>
       </div>
     )},
   ];
@@ -424,7 +431,9 @@ export default function StaffPage() {
             </p>
             {excelResult.errors && excelResult.errors.length > 0 && (
               <ul className="mt-2 text-xs text-green-700 list-disc list-inside">
-                {excelResult.errors.slice(0, 5).map((err, i) => <li key={i}>{JSON.stringify(err)}</li>)}
+                {excelResult.errors.slice(0, 5).map((err, i) => (
+                  <li key={i}>{typeof err === 'string' ? err : `Row ${err.row ?? '?'}: ${err.error || JSON.stringify(err)}`}</li>
+                ))}
               </ul>
             )}
           </div>
