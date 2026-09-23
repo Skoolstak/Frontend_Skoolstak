@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, TrendingUp, TrendingDown, DollarSign, Upload, X, ImageIcon, FileDown } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, DollarSign, Upload, X, ImageIcon, FileDown, Pencil, Trash2 } from 'lucide-react';
 import {
   PageHeader, Table, TableSkeleton, StatusBadge, GHSAmount,
   Modal, FormField, SelectField, TermSelector, StatCard,
@@ -149,6 +149,10 @@ function InvoicesTab() {
   const [term,     setTerm]     = useState('');
   const [loading,  setLoading]  = useState(true);
   const [modal,    setModal]    = useState(false);
+  const [editModal, setEditModal] = useState(null); // invoice row being edited, or null
+  const [invoiceErr, setInvoiceErr] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // invoice row pending delete
+  const [deleting, setDeleting] = useState(false);
   const [payModal,    setPayModal]    = useState(null);
   const [form,        setForm]        = useState({ student_id:'', fee_type_id:'', due_date:'', amount:'' });
   const [payForm,     setPayForm]     = useState({ amount:'', method:'mtn_momo', reference:'' });
@@ -198,9 +202,26 @@ function InvoicesTab() {
 
   function set(k,v) { setForm(f=>({...f,[k]:v})); }
   async function handleCreateInvoice(e) {
-    e.preventDefault(); setSaving(true);
+    e.preventDefault(); setSaving(true); setInvoiceErr('');
     try { await api.post('/finance/invoices', {...form, term}); loadInvoices(); setModal(false); }
-    catch(err){console.error(err);} finally{setSaving(false);}
+    catch(err){ setInvoiceErr(err.response?.data?.error || 'Failed to create invoice.'); } finally{setSaving(false);}
+  }
+
+  function openEdit(r) {
+    setInvoiceErr('');
+    setForm({ student_id: r.student_id, fee_type_id: r.fee_type_id, due_date: r.due_date?.slice(0,10) || '', amount: String(r.amount) });
+    setEditModal(r);
+  }
+  async function handleUpdateInvoice(e) {
+    e.preventDefault(); setSaving(true); setInvoiceErr('');
+    try { await api.put(`/finance/invoices/${editModal.id}`, form); loadInvoices(); setEditModal(null); }
+    catch(err){ setInvoiceErr(err.response?.data?.error || 'Failed to update invoice.'); } finally{setSaving(false);}
+  }
+  async function handleDeleteInvoice() {
+    setDeleting(true);
+    try { await api.delete(`/finance/invoices/${deleteConfirm.id}`); loadInvoices(); setDeleteConfirm(null); }
+    catch(err){ alert(err.response?.data?.error || 'Failed to delete invoice.'); }
+    finally { setDeleting(false); }
   }
   async function handlePay(e) {
     e.preventDefault(); setSaving(true); setUploadErr(''); setPayErr('');
@@ -253,6 +274,12 @@ function InvoicesTab() {
             Record Payment
           </button>
         )}
+        {r.status === 'unpaid' && (
+          <>
+            <button onClick={() => openEdit(r)} className="btn-row-icon text-charcoal-400 hover:text-brand-gold" title="Edit Invoice"><Pencil size={16} /></button>
+            <button onClick={() => setDeleteConfirm(r)} className="btn-row-icon text-charcoal-400 hover:text-danger" title="Delete Invoice"><Trash2 size={16} /></button>
+          </>
+        )}
       </div>
     )},
   ];
@@ -266,8 +293,9 @@ function InvoicesTab() {
       {loading ? <TableSkeleton rows={6} cols={5}/> : <Table columns={columns} data={invoices} emptyMessage="No invoices for this term." />}
 
       {/* Create invoice */}
-      <Modal open={modal} onClose={() => { setModal(false); setForm({ student_id:'', fee_type_id:'', due_date:'', amount:'' }); }} title="Create Fee Invoice">
+      <Modal open={modal} onClose={() => { setModal(false); setInvoiceErr(''); setForm({ student_id:'', fee_type_id:'', due_date:'', amount:'' }); }} title="Create Fee Invoice">
         <form onSubmit={handleCreateInvoice} className="space-y-4">
+          {invoiceErr && <p className="text-sm text-danger bg-red-50 px-4 py-2 rounded-xl">{invoiceErr}</p>}
           <FormField label="Student" required>
             <StudentCombobox students={students} value={form.student_id} onChange={v => set('student_id', v)}/>
           </FormField>
@@ -282,6 +310,39 @@ function InvoicesTab() {
             <button type="submit" disabled={saving} className="btn-primary">Create Invoice</button>
           </div>
         </form>
+      </Modal>
+
+      {/* Edit invoice */}
+      <Modal open={!!editModal} onClose={() => { setEditModal(null); setInvoiceErr(''); }} title="Edit Fee Invoice">
+        <form onSubmit={handleUpdateInvoice} className="space-y-4">
+          {invoiceErr && <p className="text-sm text-danger bg-red-50 px-4 py-2 rounded-xl">{invoiceErr}</p>}
+          <FormField label="Student" required>
+            <StudentCombobox students={students} value={form.student_id} onChange={v => set('student_id', v)}/>
+          </FormField>
+          <FormField label="Fee Type" required>
+            <SelectField value={form.fee_type_id} onChange={e=>{ const ft=feeTypes.find(f=>f.id===e.target.value); set('fee_type_id',e.target.value); if(ft) set('amount',ft.amount); }}
+              options={feeTypes.map(f=>({value:f.id,label:`${f.name} — ₵${Number(f.amount).toFixed(2)}`}))} placeholder="Select fee type…"/>
+          </FormField>
+          <FormField label="Amount (₵)" required><input className="input-field" type="number" step="0.01" value={form.amount} onChange={e=>set('amount',e.target.value)} required/></FormField>
+          <FormField label="Due Date" required><input className="input-field" type="date" value={form.due_date} onChange={e=>set('due_date',e.target.value)} required/></FormField>
+          <div className="flex justify-end gap-3 pt-2">
+            <button type="button" onClick={() => setEditModal(null)} className="btn-secondary">Cancel</button>
+            <button type="submit" disabled={saving} className="btn-primary">Save Changes</button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete invoice confirmation */}
+      <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Delete Invoice?" size="sm">
+        <p className="text-sm text-charcoal-600 mb-5">
+          This will permanently remove the invoice for <strong>{deleteConfirm?.student_name}</strong> ({deleteConfirm?.fee_type_name}). This cannot be undone.
+        </p>
+        <div className="flex justify-end gap-3">
+          <button type="button" onClick={() => setDeleteConfirm(null)} className="btn-secondary">Cancel</button>
+          <button type="button" disabled={deleting} onClick={handleDeleteInvoice} className="btn-primary bg-danger hover:bg-red-700">
+            {deleting ? 'Removing…' : 'Delete Invoice'}
+          </button>
+        </div>
       </Modal>
 
       {/* Receipt confirmation toast */}
