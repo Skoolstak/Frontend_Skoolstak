@@ -11,7 +11,14 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [loginMethod, setLoginMethod] = useState('email'); // 'email' or 'id'
+  // Route decides which login experience to show: /schooladmin = email login,
+  // /teacher-login = teacher ID login, everything else (/login) = student ID login.
+  const isSchoolAdminRoute = location.pathname === '/schooladmin';
+  const isTeacherRoute = location.pathname === '/teacher-login';
+
+  // Derived directly from the route (not state) so switching portals via the
+  // in-page links updates the form without needing a full remount.
+  const loginMethod = isSchoolAdminRoute ? 'email' : 'id';
   const [email, setEmail] = useState('');
   const [studentId, setStudentId] = useState('');
   const [password, setPassword] = useState('');
@@ -21,21 +28,20 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Load saved email/ID from localStorage on mount
+  // Load saved email/ID from localStorage on mount (only relevant to the
+  // matching route, so we don't flip the user into the wrong login mode).
   useEffect(() => {
     const savedEmail = localStorage.getItem('rememberedEmail');
     const savedId = localStorage.getItem('rememberedId');
-    
-    if (savedEmail) {
+
+    if (isSchoolAdminRoute && savedEmail) {
       setEmail(savedEmail);
       setRememberEmail(true);
-      setLoginMethod('email'); // Switch to email login if saved email exists
-    } else if (savedId) {
+    } else if (!isSchoolAdminRoute && savedId) {
       setStudentId(savedId);
       setRememberMe(true);
-      setLoginMethod('id'); // Switch to ID login if saved ID exists
     }
-  }, []);
+  }, [isSchoolAdminRoute]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -105,34 +111,17 @@ export default function LoginPage() {
         </div>
 
         <div className="card">
+          <span className="inline-block mb-3 px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide uppercase bg-brand-gold/10 text-brand-gold-dark">
+            {isSchoolAdminRoute ? 'School Admin Portal' : isTeacherRoute ? 'Teacher Portal' : 'Student Portal'}
+          </span>
           <h2 className="text-xl font-bold text-charcoal-900 mb-1">Welcome back</h2>
-          <p className="text-sm text-charcoal-500 mb-6">Sign in to your school account</p>
-
-          {/* Login Method Toggle */}
-          <div className="flex gap-2 mb-6 p-1 bg-sand-100 rounded-xl">
-            <button
-              type="button"
-              onClick={() => setLoginMethod('email')}
-              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
-                loginMethod === 'email'
-                  ? 'bg-white text-charcoal-900 shadow-sm'
-                  : 'text-charcoal-500 hover:text-charcoal-700'
-              }`}
-            >
-              School Admin
-            </button>
-            <button
-              type="button"
-              onClick={() => setLoginMethod('id')}
-              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
-                loginMethod === 'id'
-                  ? 'bg-white text-charcoal-900 shadow-sm'
-                  : 'text-charcoal-500 hover:text-charcoal-700'
-              }`}
-            >
-              Student / Teacher
-            </button>
-          </div>
+          <p className="text-sm text-charcoal-500 mb-6">
+            {isSchoolAdminRoute
+              ? 'Sign in to your school admin account'
+              : isTeacherRoute
+                ? 'Sign in to your teacher account'
+                : 'Sign in to your student account'}
+          </p>
 
           {error && (
             <div className="mb-4 px-4 py-3 bg-red-50 border border-red-100 text-danger text-sm rounded-xl">
@@ -158,7 +147,7 @@ export default function LoginPage() {
               </div>
             ) : (
               <div>
-                <label className="label" htmlFor="studentId">Student / Teacher ID</label>
+                <label className="label" htmlFor="studentId">{isTeacherRoute ? 'Teacher ID' : 'Student ID'}</label>
                 <input
                   id="studentId"
                   type="text"
@@ -166,16 +155,16 @@ export default function LoginPage() {
                   value={studentId}
                   onChange={e => setStudentId(e.target.value)}
                   className="input-field uppercase"
-                  placeholder="STU-2024-001 or TEA-2024-001"
+                  placeholder={isTeacherRoute ? 'TEA-2024-001' : 'STU-2024-001'}
                 />
                 <p className="text-xs text-charcoal-400 mt-1">
-                  Your ID can be found on your student/staff card
+                  Your ID can be found on your {isTeacherRoute ? 'staff' : 'student'} card
                 </p>
                 
                 {/* First-time login notice */}
                 <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-xl">
                   <p className="text-xs text-blue-900">
-                    <span className="font-semibold">Your password is the same as your Student ID or Teachers ID.</span> You'll be able to change it after logging in.
+                    <span className="font-semibold">Your password is the same as your {isTeacherRoute ? 'Teacher' : 'Student'} ID.</span> You'll be able to change it after logging in.
                   </p>
                 </div>
               </div>
@@ -264,13 +253,50 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-charcoal-400 mt-6">
-          Don't have an account?{' '}
-          <Link to="/signup" className="text-brand-gold hover:text-brand-gold-dark font-medium">
-            Register your school
-          </Link>
-        </p>
-        <p className="text-center text-xs text-charcoal-400 mt-2">
+        {isSchoolAdminRoute && (
+          <p className="text-center text-xs text-charcoal-400 mt-6">
+            Don't have an account?{' '}
+            <Link to="/signup" className="text-brand-gold hover:text-brand-gold-dark font-medium">
+              Register your school
+            </Link>
+          </p>
+        )}
+
+        {/* Portal switcher */}
+        <div className="mt-4 flex items-center justify-center gap-2 text-xs">
+          <span className="text-charcoal-400">Wrong portal?</span>
+          {!isSchoolAdminRoute && (
+            <>
+              {!isTeacherRoute && (
+                <Link to="/teacher-login" className="px-2.5 py-1 rounded-full bg-sand-100 text-charcoal-600 hover:bg-sand-200 font-medium">
+                  Teacher
+                </Link>
+              )}
+              {isTeacherRoute && (
+                <Link to="/login" className="px-2.5 py-1 rounded-full bg-sand-100 text-charcoal-600 hover:bg-sand-200 font-medium">
+                  Student
+                </Link>
+              )}
+            </>
+          )}
+          {!isSchoolAdminRoute && (
+            <Link to="/schooladmin" className="px-2.5 py-1 rounded-full bg-sand-100 text-charcoal-600 hover:bg-sand-200 font-medium">
+              School Admin
+            </Link>
+          )}
+          {isSchoolAdminRoute && (
+            <>
+              <Link to="/login" className="px-2.5 py-1 rounded-full bg-sand-100 text-charcoal-600 hover:bg-sand-200 font-medium">
+                Student
+              </Link>
+              <Link to="/teacher-login" className="px-2.5 py-1 rounded-full bg-sand-100 text-charcoal-600 hover:bg-sand-200 font-medium">
+                Teacher
+              </Link>
+            </>
+          )}
+        </div>
+
+        <p className="text-center text-xs text-charcoal-400 mt-4">
           &copy; {new Date().getFullYear()} Skoolstak &middot; Built for Ghana 🇬🇭 and Africa.
         </p>
       </div>

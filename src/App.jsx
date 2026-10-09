@@ -62,11 +62,13 @@ export default function App() {
       <Router>
         <Routes>
           {/* Public */}
-          <Route path="/login"  element={<LoginPage />} />
-          <Route path="/signup" element={<SignUpPage />} />
+          <Route path="/login"        element={<LoginPage />} />
+          <Route path="/teacher-login" element={<LoginPage />} />
+          <Route path="/schooladmin"  element={<LoginPage />} />
+          <Route path="/signup"       element={<SignUpPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/"       element={<Navigate to="/login" replace />} />
+          <Route path="/"       element={<Navigate to="/schooladmin" replace />} />
 
           {/* Change Password - Accessible to all authenticated users */}
           <Route
@@ -170,7 +172,7 @@ export default function App() {
           />
 
           {/* Catch-all */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/schooladmin" replace />} />
         </Routes>
       </Router>
     </AuthProvider>

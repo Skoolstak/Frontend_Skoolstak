@@ -342,7 +342,7 @@ export default function SubjectsPage() {
               <div className="flex flex-wrap gap-2">
                 <span className="px-3 py-1.5 bg-white border-2 border-amber-300 rounded-lg text-xs font-mono font-medium text-amber-800 shadow-sm">name</span>
                 {!classFilter && (
-                  <span className="px-3 py-1.5 bg-white border-2 border-amber-300 rounded-lg text-xs font-mono font-medium text-amber-800 shadow-sm">class_id</span>
+                  <span className="px-3 py-1.5 bg-white border-2 border-amber-300 rounded-lg text-xs font-mono font-medium text-amber-800 shadow-sm">class_id <span className="text-amber-600">(class name, e.g. JHS 1)</span></span>
                 )}
               </div>
             </div>
