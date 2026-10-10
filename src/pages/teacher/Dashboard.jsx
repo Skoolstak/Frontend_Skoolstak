@@ -3,8 +3,11 @@ import { Link } from 'react-router-dom';
 import { Users, BookOpen, CalendarCheck, ClipboardList, Clock, AlertCircle, FileText } from 'lucide-react';
 import { StatCard } from '../../components/shared';
 import api from '../../services/api';
+import { usePeriods, formatPeriod } from '../../services/periods';
 
 export default function TeacherDashboard() {
+  const { periods } = usePeriods();
+  const periodTime = (n) => formatPeriod(periods.find(p => p.period === n), true);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -47,11 +50,13 @@ export default function TeacherDashboard() {
               {summary.today_slots.map((slot, i) => (
                 <div key={i} className="flex items-center gap-3 p-3 bg-sand-50 rounded-xl">
                   <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs font-bold text-blue-700">P{i + 1}</span>
+                    <span className="text-xs font-bold text-blue-700">P{slot.period ?? i + 1}</span>
                   </div>
                   <div>
                     <p className="font-medium text-charcoal-900 text-sm">{slot.subject_name || slot.subject}</p>
-                    <p className="text-xs text-charcoal-500">{slot.class_name || '—'}</p>
+                    <p className="text-xs text-charcoal-500">
+                      {[slot.class_name || '—', periodTime(slot.period)].filter(Boolean).join(' • ')}
+                    </p>
                   </div>
                 </div>
               ))}

@@ -6,8 +6,11 @@ import {
 } from 'lucide-react';
 import { StatCard } from '../../components/shared';
 import api from '../../services/api';
+import { usePeriods, formatPeriod } from '../../services/periods';
 
 export default function StudentDashboard() {
+  const { periods } = usePeriods();
+  const periodTime = (n) => formatPeriod(periods.find(p => p.period === n), true);
   const [summary, setSummary] = useState(null);
   const [todayClasses, setTodayClasses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +52,7 @@ export default function StudentDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard 
           label="Current GPA" 
-          value={summary?.gpa ? summary.gpa.toFixed(2) : '—'} 
+          value={summary?.gpa != null ? Number(summary.gpa).toFixed(2) : '—'} 
           icon={Award}
           colorClass="text-brand-gold"
           loading={loading}
@@ -114,7 +117,7 @@ export default function StudentDashboard() {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-charcoal-900">{cls.subject_name}</p>
                     <p className="text-sm text-charcoal-500 mt-0.5">
-                      {cls.teacher_name} • {cls.start_time} - {cls.end_time}
+                      {[cls.teacher_name, periodTime(cls.period)].filter(Boolean).join(' • ')}
                     </p>
                   </div>
                   <div className="flex-shrink-0">
@@ -162,9 +165,9 @@ export default function StudentDashboard() {
               <TrendingUp className="text-green-500" size={18}/>
               Recent Performance
             </h2>
-            <a href="/student/academic-records" className="text-xs text-blue-600 hover:underline font-medium">
+            <Link to="/student/academic-records" className="text-xs text-blue-600 hover:underline font-medium">
               View All →
-            </a>
+            </Link>
           </div>
 
           {loading ? (

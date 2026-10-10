@@ -212,9 +212,9 @@ export default function TeacherClasses() {
                               <p className="font-semibold text-charcoal-900">
                                 {student.first_name} {student.last_name}
                               </p>
-                              {student.date_of_birth && (
+                              {student.date_of_birth && !Number.isNaN(new Date(student.date_of_birth).getTime()) && (
                                 <p className="text-xs text-charcoal-500">
-                                  {new Date().getFullYear() - new Date(student.date_of_birth).getFullYear()} years old
+                                  {Math.max(0, Math.floor((Date.now() - new Date(student.date_of_birth).getTime()) / 31557600000))} years old
                                 </p>
                               )}
                             </div>

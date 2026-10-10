@@ -3,12 +3,13 @@ import { Calendar } from 'lucide-react';
 import { PageHeader, EmptyState, TermSelector, Spinner } from '../../components/shared';
 import api from '../../services/api';
 import { usePeriods, formatPeriod } from '../../services/periods';
+import { currentTermYear } from '../../services/term';
 
 const DAYS    = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
 
 export default function StudentTimetable() {
   const { periods } = usePeriods();
-  const [term,    setTerm]    = useState({ term:1, year: new Date().getFullYear() });
+  const [term,    setTerm]    = useState(currentTermYear);
   const [slots,   setSlots]   = useState([]);
   const [loading, setLoading] = useState(true);
 

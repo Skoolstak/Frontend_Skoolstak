@@ -5,9 +5,10 @@ import {
 } from 'lucide-react';
 import { PageHeader, TermSelector, Spinner } from '../../components/shared';
 import api from '../../services/api';
+import { currentTermYear } from '../../services/term';
 
 export default function StudentAssignments() {
-  const [term, setTerm] = useState({ term: 1, year: new Date().getFullYear() });
+  const [term, setTerm] = useState(currentTermYear);
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
 

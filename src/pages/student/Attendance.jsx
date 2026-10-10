@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { CheckCircle2, XCircle, Calendar, TrendingUp, Award } from 'lucide-react';
 import { PageHeader, TermSelector, Spinner } from '../../components/shared';
 import api from '../../services/api';
+import { currentTermYear } from '../../services/term';
 
 export default function StudentAttendance() {
-  const [term, setTerm] = useState({ term: 1, year: new Date().getFullYear() });
+  const [term, setTerm] = useState(currentTermYear);
   const [attendance, setAttendance] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -23,8 +24,11 @@ export default function StudentAttendance() {
       .finally(() => setLoading(false));
   }, [term]);
 
+  // Statuses are stored lowercase ("present"); the colours and icons are keyed by the capitalised word
+  const statusLabel = (status) => (status ? status.charAt(0).toUpperCase() + status.slice(1).toLowerCase() : '—');
+
   const statusColor = (status) => {
-    switch (status) {
+    switch (statusLabel(status)) {
       case 'Present': return 'bg-green-50 text-green-700 border-green-200';
       case 'Absent': return 'bg-red-50 text-red-700 border-red-200';
       case 'Late': return 'bg-amber-50 text-amber-700 border-amber-200';
@@ -34,7 +38,7 @@ export default function StudentAttendance() {
   };
 
   const statusIcon = (status) => {
-    switch (status) {
+    switch (statusLabel(status)) {
       case 'Present': return <CheckCircle2 size={18} className="text-green-600"/>;
       case 'Absent': return <XCircle size={18} className="text-red-600"/>;
       case 'Late': return <Calendar size={18} className="text-amber-600"/>;
@@ -182,12 +186,12 @@ export default function StudentAttendance() {
                         <td className="py-3 px-4">
                           <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border ${statusColor(record.status)}`}>
                             {statusIcon(record.status)}
-                            <span className="text-xs font-semibold">{record.status}</span>
+                            <span className="text-xs font-semibold">{statusLabel(record.status)}</span>
                           </div>
                         </td>
                         <td className="py-3 px-4">
                           <span className="text-sm text-charcoal-600">
-                            {record.remarks || '—'}
+                            {record.remarks || record.remark || '—'}
                           </span>
                         </td>
                       </tr>
