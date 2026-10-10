@@ -5,6 +5,7 @@ import {
   Modal, FormField, SelectField, TermSelector, StatCard,
 } from '../../components/shared';
 import api, { openPdf } from '../../services/api';
+import SalariesTab from './SalariesTab';
 
 const FEE_FREQUENCIES = [
   { value: 'daily',   label: 'Daily' },
@@ -613,122 +614,6 @@ function CashFlowTab() {
             {deleting ? 'Removing…' : 'Delete'}
           </button>
         </div>
-      </Modal>
-    </div>
-  );
-}
-
-/* ────────────── SALARIES TAB ────────────── */
-const ROLE_LABELS = { teacher: 'Teacher', school_admin: 'School Admin' };
-
-function currentMonthValue() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-}
-
-// A failed PDF request comes back as a Blob; pull the server's message out of it when possible.
-async function pdfErrorMessage(err) {
-  try {
-    const blob = err.response?.data;
-    if (blob && typeof blob.text === 'function') return JSON.parse(await blob.text()).error;
-  } catch (_) { /* fall through */ }
-  return err.message || 'Failed to generate the salary notice.';
-}
-
-function SalariesTab() {
-  const [staff,   setStaff]   = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
-  const [month,   setMonth]   = useState(currentMonthValue());
-  const [editing, setEditing] = useState(null);
-  const [amount,  setAmount]  = useState('');
-  const [saving,  setSaving]  = useState(false);
-  const [error,   setError]   = useState('');
-  const [printError, setPrintError] = useState('');
-
-  useEffect(() => { load(); }, []);
-  async function load() {
-    setLoading(true); setLoadError('');
-    try { const { data } = await api.get('/finance/salaries'); setStaff(data.staff || []); }
-    catch (e) { setLoadError(e.response?.data?.error || 'Failed to load salaries.'); }
-    finally { setLoading(false); }
-  }
-  function openEdit(r) { setError(''); setAmount(r.salary == null ? '' : String(r.salary)); setEditing(r); }
-  async function handleSave(e) {
-    e.preventDefault(); setError(''); setSaving(true);
-    try { await api.put(`/finance/salaries/${editing.id}`, { amount }); setEditing(null); load(); }
-    catch (err) { setError(err.response?.data?.error || 'Failed to save salary.'); }
-    finally { setSaving(false); }
-  }
-  async function printNotice(r) {
-    setPrintError('');
-    try { await openPdf(`/finance/salary-notice/${r.id}/pdf?month=${encodeURIComponent(month)}`); }
-    catch (err) { setPrintError(await pdfErrorMessage(err)); }
-  }
-
-  const withSalary = staff.filter(s => s.salary != null);
-  const payroll = withSalary.reduce((sum, s) => sum + s.salary, 0);
-
-  const columns = [
-    { key:'name', label:'Staff', render: r => (
-      <div>
-        <div className="font-medium">{r.first_name} {r.last_name}</div>
-        {r.staff_id && <div className="text-xs text-charcoal-400">{r.staff_id}</div>}
-      </div>
-    )},
-    { key:'role',        label:'Role',        render: r => ROLE_LABELS[r.role] || r.role || '—' },
-    { key:'designation', label:'Designation', render: r => r.designation || '—' },
-    { key:'salary',      label:'Monthly Salary', render: r => r.salary == null
-      ? <span className="text-charcoal-400">Not set</span>
-      : <GHSAmount amount={r.salary} className="font-semibold" /> },
-    { key:'actions', label:'', render: r => (
-      <div className="flex gap-2 items-center justify-end">
-        <button
-          onClick={() => printNotice(r)}
-          disabled={r.salary == null}
-          title={r.salary == null ? 'Set a salary first' : `Print salary notice for ${month}`}
-          className="inline-flex items-center gap-1 text-xs font-medium text-brand-gold hover:underline disabled:cursor-not-allowed disabled:opacity-40 disabled:no-underline"
-        >
-          <FileDown size={14} /> Print Notice
-        </button>
-        <button onClick={() => openEdit(r)} className="btn-row-icon text-charcoal-400 hover:text-brand-gold" title="Set salary"><Pencil size={16} /></button>
-      </div>
-    )},
-  ];
-
-  return (
-    <div>
-      <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
-        <div>
-          <label className="label" htmlFor="salary-month">Pay period</label>
-          <input id="salary-month" type="month" className="input-field" value={month} onChange={e => e.target.value && setMonth(e.target.value)} />
-        </div>
-        {!loading && !loadError && (
-          <div className="text-right">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-soft)]">Monthly payroll</p>
-            <p className="text-lg font-bold text-[var(--text-strong)]"><GHSAmount amount={payroll} /></p>
-            <p className="text-xs text-[var(--text-soft)]">{withSalary.length} of {staff.length} staff have a salary set</p>
-          </div>
-        )}
-      </div>
-      {printError && <p className="text-sm text-danger bg-red-50 px-4 py-2 rounded-xl mb-4">{printError}</p>}
-      {loadError && <p className="text-sm text-danger bg-red-50 px-4 py-2 rounded-xl mb-4">{loadError}</p>}
-      {loading ? <TableSkeleton rows={5} cols={4}/> : !loadError && <Table columns={columns} data={staff} emptyMessage="No staff members yet. Add staff first." />}
-
-      <Modal open={!!editing} onClose={() => setEditing(null)} title={editing ? `Salary — ${editing.first_name} ${editing.last_name}` : ''} size="sm">
-        {error && <p className="text-sm text-danger bg-red-50 px-4 py-2 rounded-xl mb-4">{error}</p>}
-        <form onSubmit={handleSave} className="space-y-4">
-          <FormField label="Monthly salary (₵)">
-            <input className="input-field" type="number" step="0.01" min="0" value={amount} onChange={e => setAmount(e.target.value)} placeholder="E.g. 2500" autoFocus />
-          </FormField>
-          <p className="text-xs text-[var(--text-soft)]">Leave blank to remove the salary. Only school admins can see salaries.</p>
-          <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={() => setEditing(null)} className="btn-secondary">Cancel</button>
-            <button type="submit" disabled={saving} className="btn-primary flex items-center gap-2">
-              {saving && <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"/>}Save
-            </button>
-          </div>
-        </form>
       </Modal>
     </div>
   );
