@@ -263,7 +263,7 @@ export default function ClassesPage() {
             columns={[
               { name: 'Class Name', required: true, note: 'e.g. Primary 1' },
               { name: 'Level', required: false, note: 'e.g. Primary 1, JHS 2' },
-              { name: 'Class Teacher', required: false, note: "Teacher's full name, exactly as shown in Staff" },
+              { name: 'Class Teacher', required: false, note: "Teacher's full name. If they are not in Staff yet, they are added automatically with a TEA- login ID." },
               { name: 'Capacity', required: false, note: 'Number of students' },
             ]}
             example="Primary 1 | Primary 1 | Daniel Obeng | 30"

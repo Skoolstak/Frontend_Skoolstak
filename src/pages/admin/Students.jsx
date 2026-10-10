@@ -587,7 +587,7 @@ export default function StudentsPage() {
           <ImportGuide
             columns={[
               { name: 'Student', required: true, note: 'Full name, e.g. Ama Mensah' },
-              { name: 'Class', required: false, note: 'Class name, exactly as shown in Classes (e.g. Primary 1). The class must already exist, so import Classes first.' },
+              { name: 'Class', required: false, note: 'Class name (e.g. Primary 1). If the class does not exist yet, it is created automatically.' },
               { name: 'Date of Birth', required: false, note: 'Excel date or YYYY-MM-DD' },
               { name: 'Status', required: false, note: 'Active, Graduated or Withdrawn. Defaults to Active.' },
             ]}

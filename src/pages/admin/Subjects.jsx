@@ -305,9 +305,9 @@ export default function SubjectsPage() {
           <ImportGuide
             columns={[
               { name: 'Subject', required: true, note: 'e.g. Mathematics' },
-              { name: 'Class', required: !classFilter, note: 'Class name, exactly as shown in Classes (e.g. Primary 1)' },
+              { name: 'Class', required: !classFilter, note: 'Class name (e.g. Primary 1). If the class does not exist yet, it is created automatically.' },
               { name: 'Code', required: false, note: 'e.g. MATH06' },
-              { name: 'Teacher', required: false, note: "Teacher's full name, exactly as shown in Staff" },
+              { name: 'Teacher', required: false, note: "Teacher's full name. If they are not in Staff yet, they are added automatically with a TEA- login ID." },
               { name: 'Status', required: false, note: 'Active or Inactive. Defaults to Active.' },
             ]}
             example="Mathematics | MATH06 | Primary 1 | Daniel Obeng | Active"

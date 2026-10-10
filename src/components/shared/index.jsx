@@ -377,7 +377,7 @@ export function ImportGuide({ columns, notes = [], example }) {
  */
 export function ImportResult({ result, noun }) {
   if (!result) return null;
-  const { success = 0, failed = 0, errors = [], created = [] } = result;
+  const { success = 0, failed = 0, errors = [], created = [], auto_created = [] } = result;
   const tone = failed === 0
     ? 'border-green-200 bg-green-50 text-green-900'
     : success === 0
@@ -413,6 +413,20 @@ export function ImportResult({ result, noun }) {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+      {auto_created.length > 0 && (
+        <div className="mt-3 border-t border-current/20 pt-2">
+          <p className="text-xs font-semibold">Added automatically because they did not exist yet</p>
+          <ul className="mt-1 max-h-40 space-y-0.5 overflow-y-auto text-xs">
+            {auto_created.map((a, i) => (
+              <li key={i} className="flex justify-between gap-4">
+                <span>{a.type === 'teacher' ? 'Teacher' : 'Class'}: {a.name}</span>
+                {a.login_id && <span className="font-mono">{a.login_id}</span>}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1 text-xs">Check these for spelling mistakes. A misspelled name creates a new record instead of matching an existing one.</p>
         </div>
       )}
     </div>
