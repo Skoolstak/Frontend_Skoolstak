@@ -328,3 +328,93 @@ export function Spinner({ size = 20 }) {
     </svg>
   );
 }
+
+/**
+ * Excel import guide: a neutral, table-style description of the expected columns.
+ * columns: [{ name, required, note }]  ·  notes: string[]
+ */
+export function ImportGuide({ columns, notes = [], example }) {
+  return (
+    <div className="rounded-2xl border border-[rgba(108,85,61,0.14)] bg-[rgba(108,85,61,0.03)]">
+      <div className="border-b border-[rgba(108,85,61,0.12)] px-4 py-3">
+        <h3 className="text-sm font-semibold text-[var(--text-strong)]">File format</h3>
+        <p className="mt-0.5 text-xs text-[var(--text-soft)]">
+          Use the first sheet of an .xlsx or .xls file. Row 1 must contain the column headings below.
+        </p>
+      </div>
+      <table className="w-full text-left text-xs">
+        <thead>
+          <tr className="text-[var(--text-soft)]">
+            <th className="px-4 py-2 font-medium">Column</th>
+            <th className="px-2 py-2 font-medium">Required</th>
+            <th className="px-4 py-2 font-medium">Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          {columns.map((c) => (
+            <tr key={c.name} className="border-t border-[rgba(108,85,61,0.08)] align-top">
+              <td className="whitespace-nowrap px-4 py-2 font-semibold text-[var(--text-strong)]">{c.name}</td>
+              <td className="px-2 py-2 text-[var(--text-soft)]">{c.required ? 'Yes' : 'No'}</td>
+              <td className="px-4 py-2 text-[var(--text-soft)]">{c.note || '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {(example || notes.length > 0) && (
+        <div className="space-y-1.5 border-t border-[rgba(108,85,61,0.12)] px-4 py-3 text-xs text-[var(--text-soft)]">
+          {example && <p><span className="font-medium text-[var(--text-strong)]">Example row:</span> {example}</p>}
+          {notes.map((n, i) => <p key={i}>{n}</p>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Outcome of an Excel import. Green only when every row succeeded,
+ * amber for partial success, red when nothing was imported.
+ * Lists every row error; shows generated login IDs when the server returns them.
+ */
+export function ImportResult({ result, noun }) {
+  if (!result) return null;
+  const { success = 0, failed = 0, errors = [], created = [] } = result;
+  const tone = failed === 0
+    ? 'border-green-200 bg-green-50 text-green-900'
+    : success === 0
+      ? 'border-red-200 bg-red-50 text-red-900'
+      : 'border-amber-200 bg-amber-50 text-amber-900';
+  const title = failed === 0
+    ? 'Import completed'
+    : success === 0
+      ? 'Import failed — nothing was imported'
+      : 'Import completed with errors';
+
+  return (
+    <div className={`mb-4 rounded-2xl border px-4 py-3 ${tone}`}>
+      <p className="text-sm font-semibold">{title}</p>
+      <p className="mt-0.5 text-xs">
+        {success} {noun}{success === 1 ? '' : 's'} imported{failed > 0 ? `, ${failed} failed` : ''}.
+      </p>
+      {errors.length > 0 && (
+        <ul className="mt-2 max-h-40 space-y-0.5 overflow-y-auto text-xs">
+          {errors.map((err, i) => (
+            <li key={i}>{typeof err === 'string' ? err : `Row ${err.row ?? '?'}: ${err.error || JSON.stringify(err)}`}</li>
+          ))}
+        </ul>
+      )}
+      {created.length > 0 && (
+        <div className="mt-3 border-t border-current/20 pt-2">
+          <p className="text-xs font-semibold">Login IDs (the initial password is the same as the ID)</p>
+          <ul className="mt-1 max-h-40 space-y-0.5 overflow-y-auto text-xs">
+            {created.map((c) => (
+              <li key={c.login_id} className="flex justify-between gap-4">
+                <span>{c.name}</span>
+                <span className="font-mono">{c.login_id}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}

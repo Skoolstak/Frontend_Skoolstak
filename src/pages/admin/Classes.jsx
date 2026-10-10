@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { School, Plus, Search, Pencil, Trash2, Users, FileSpreadsheet, CheckCircle2, FileText, Info } from 'lucide-react';
+import { School, Plus, Search, Pencil, Trash2, Users, FileSpreadsheet } from 'lucide-react';
 import {
   PageHeader, Table, TableSkeleton, EmptyState,
-  Modal, FormField, SelectField, ConfirmDialog, StatCard,
+  Modal, FormField, SelectField, ConfirmDialog, StatCard, ImportGuide, ImportResult,
 } from '../../components/shared';
 import api from '../../services/api';
 
@@ -257,65 +257,18 @@ export default function ClassesPage() {
       {/* Excel Import Modal */}
       <Modal open={excelModal} onClose={() => setExcelModal(false)} title="Import Classes from Excel">
         {excelError && <p className="text-sm text-danger bg-red-50 px-4 py-2 rounded-xl mb-4">{excelError}</p>}
-        {excelResult && (
-          <div className="mb-4 px-4 py-3 bg-green-50 border border-green-100 rounded-xl">
-            <p className="text-sm text-green-800">
-              <strong>Import Complete!</strong> Successfully imported {excelResult.success} class{excelResult.success !== 1 ? 'es' : ''}.
-              {excelResult.failed > 0 && ` ${excelResult.failed} failed.`}
-            </p>
-            {excelResult.errors && excelResult.errors.length > 0 && (
-              <ul className="mt-2 text-xs text-green-700 list-disc list-inside">
-                {excelResult.errors.slice(0, 5).map((err, i) => (
-                  <li key={i}>{typeof err === 'string' ? err : `Row ${err.row ?? '?'}: ${err.error || JSON.stringify(err)}`}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
+        <ImportResult result={excelResult} noun="class" />
         <div className="space-y-4">
-          {/* Beautiful Format Requirements */}
-          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-200 rounded-2xl p-5 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 bg-blue-500 rounded-lg">
-                <FileSpreadsheet className="text-white" size={20} />
-              </div>
-              <div>
-                <h3 className="text-base font-semibold text-blue-900">Excel Format Guide</h3>
-                <p className="text-xs text-blue-700">Follow these requirements for successful import</p>
-              </div>
-            </div>
-
-            {/* Required Columns */}
-            <div className="mb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle2 size={16} className="text-blue-600" />
-                <span className="text-sm font-semibold text-blue-900">Required Columns</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <span className="px-3 py-1.5 bg-white border-2 border-blue-300 rounded-lg text-xs font-mono font-medium text-blue-800 shadow-sm">name</span>
-              </div>
-            </div>
-
-            {/* Optional Columns */}
-            <div className="mb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <FileText size={16} className="text-blue-600" />
-                <span className="text-sm font-semibold text-blue-900">Optional Columns</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <span className="px-3 py-1.5 bg-white/70 border border-blue-200 rounded-lg text-xs font-mono text-blue-700">level</span>
-                <span className="px-3 py-1.5 bg-white/70 border border-blue-200 rounded-lg text-xs font-mono text-blue-700">capacity</span>
-              </div>
-            </div>
-
-            {/* Additional Info */}
-            <div className="flex items-start gap-2 pt-3 border-t border-blue-200">
-              <Info size={16} className="text-blue-600 mt-0.5 flex-shrink-0" />
-              <div className="text-xs text-blue-800">
-                <span className="font-medium">Note:</span> Class teachers can be assigned later through the UI
-              </div>
-            </div>
-          </div>
+          <ImportGuide
+            columns={[
+              { name: 'Class Name', required: true, note: 'e.g. Primary 1' },
+              { name: 'Level', required: false, note: 'e.g. Primary 1, JHS 2' },
+              { name: 'Class Teacher', required: false, note: "Teacher's full name, exactly as shown in Staff" },
+              { name: 'Capacity', required: false, note: 'Number of students' },
+            ]}
+            example="Primary 1 | Primary 1 | Daniel Obeng | 30"
+            notes={['The Students column in the table is calculated automatically and is not imported.']}
+          />
           <FormField label="Select Excel File">
             <input 
               type="file" 
