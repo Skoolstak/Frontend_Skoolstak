@@ -268,28 +268,26 @@ export default function SubjectsPage() {
       )}
 
       {/* Confirm Delete */}
-      {confirm && (
-        <ConfirmDialog
-          title="Delete Subject"
-          message={`Delete "${confirm.name}"? This will also delete all grade records for this subject.`}
-          confirmLabel="Delete"
-          danger
-          onConfirm={() => handleDelete(confirm.id)}
-          onCancel={() => setConfirm(null)}
-        />
-      )}
+      <ConfirmDialog
+        open={!!confirm}
+        title="Delete Subject"
+        message={`Delete "${confirm?.name}"? This will also delete all grade records for this subject.`}
+        confirmLabel="Delete"
+        danger
+        onConfirm={() => handleDelete(confirm.id)}
+        onClose={() => setConfirm(null)}
+      />
 
       {/* Confirm Bulk Delete */}
-      {bulkConfirm && (
-        <ConfirmDialog
-          title={`Delete ${selected.length} Subject${selected.length !== 1 ? 's' : ''}`}
-          message={`This will permanently delete ${selected.length} selected subject${selected.length !== 1 ? 's' : ''} and their grade records.`}
-          confirmLabel={bulkDeleting ? 'Deleting…' : `Delete ${selected.length}`}
-          danger
-          onConfirm={() => { handleBulkDelete(); setBulkConfirm(false); }}
-          onCancel={() => setBulkConfirm(false)}
-        />
-      )}
+      <ConfirmDialog
+        open={bulkConfirm}
+        title={`Delete ${selected.length} Subject${selected.length !== 1 ? 's' : ''}`}
+        message={`This will permanently delete ${selected.length} selected subject${selected.length !== 1 ? 's' : ''} and their grade records.`}
+        confirmLabel={bulkDeleting ? 'Deleting…' : `Delete ${selected.length}`}
+        danger
+        onConfirm={handleBulkDelete}
+        onClose={() => setBulkConfirm(false)}
+      />
 
       {/* Excel Import Modal */}
       <Modal open={excelModal} onClose={() => setExcelModal(false)} title="Import Subjects from Excel">
