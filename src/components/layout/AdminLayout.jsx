@@ -28,10 +28,12 @@ const NAV_BY_ROLE = {
   ],
   school_admin: [
     { label: 'Dashboard',  icon: LayoutDashboard, to: '/admin' },
-    { label: 'Students',   icon: GraduationCap,   to: '/admin/students' },
+    // Setup order: each page depends on the ones above it (classes need teachers,
+    // subjects need classes and teachers, students need classes).
     { label: 'Staff',      icon: Users,            to: '/admin/staff' },
     { label: 'Classes',    icon: School,           to: '/admin/classes' },
     { label: 'Subjects',   icon: BookMarked,       to: '/admin/subjects' },
+    { label: 'Students',   icon: GraduationCap,   to: '/admin/students' },
     { label: 'Attendance', icon: ClipboardList,    to: '/admin/attendance' },
     { label: 'Timetable',  icon: Calendar,         to: '/admin/timetable' },
     { label: 'Reports',    icon: FileText,          to: '/admin/reports' },
