@@ -7,7 +7,7 @@
 /* eslint-env serviceworker */
 
 // Bump version string to force cache refresh on all clients
-const SW_VERSION    = 'v3';
+const SW_VERSION    = 'v4';
 const CACHE_NAME    = `skoolstak-shell-${SW_VERSION}`;
 const RUNTIME_CACHE = `skoolstak-runtime-${SW_VERSION}`;
 
@@ -28,7 +28,6 @@ const MAX_RUNTIME_ENTRIES = 60;
 
 // App shell files to cache on install
 const PRECACHE_ASSETS = [
-  '/',
   '/index.html',
   '/manifest.json',
   '/offline.html',
@@ -79,7 +78,24 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // App shell: cache-first with network fallback → offline page
+  // Page navigations (index.html): network-first so a new deploy is picked up
+  // immediately; fall back to the cached shell only when offline.
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then(response => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put('/index.html', clone)).catch(() => {});
+          }
+          return response;
+        })
+        .catch(async () => (await caches.match('/index.html')) || (await caches.match('/offline.html')))
+    );
+    return;
+  }
+
+  // Static assets (hashed filenames): cache-first with network fallback → offline page
   event.respondWith(
     caches.match(request).then(cached => {
       if (cached) return cached;
