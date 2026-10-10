@@ -86,6 +86,11 @@ export default function SalariesTab() {
     try { await openPdf(`/finance/salary-notice/${r.id}/pdf?month=${encodeURIComponent(month)}`); }
     catch (err) { setPrintError(await pdfErrorMessage(err)); }
   }
+  async function printPayrollList() {
+    setPrintError('');
+    try { await openPdf(`/finance/payroll-list/pdf?month=${encodeURIComponent(month)}`); }
+    catch (err) { setPrintError(await pdfErrorMessage(err)); }
+  }
 
   const paid = staff.filter(s => s.net != null);
   const payroll = paid.reduce((sum, s) => sum + s.net, 0);
@@ -124,9 +129,19 @@ export default function SalariesTab() {
   return (
     <div>
       <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
-        <div>
-          <label className="label" htmlFor="salary-month">Pay period</label>
-          <MonthInput id="salary-month" value={month} onChange={setMonth} />
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <label className="label" htmlFor="salary-month">Pay period</label>
+            <MonthInput id="salary-month" value={month} onChange={setMonth} />
+          </div>
+          <button
+            onClick={printPayrollList}
+            disabled={loading || paid.length === 0}
+            title={paid.length === 0 ? `No staff have a salary for ${monthText(month)} yet` : `Print the payroll list for ${monthText(month)} to give to the bank`}
+            className="btn-secondary inline-flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <FileDown size={15} /> Print Payroll List
+          </button>
         </div>
         {!loading && !loadError && (
           <div className="text-right">

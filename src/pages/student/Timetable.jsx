@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Calendar } from 'lucide-react';
 import { PageHeader, EmptyState, TermSelector, Spinner } from '../../components/shared';
 import api from '../../services/api';
+import { usePeriods, formatPeriod } from '../../services/periods';
 
 const DAYS    = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
-const PERIODS = ['Period 1','Period 2','Period 3','Period 4','Period 5','Period 6','Period 7','Period 8','Period 9','Period 10','Period 11'];
-const PERIOD_TIMES = ['06:00–06:45','06:45–07:30','07:30–08:15','08:15–09:00','09:15–10:00','10:00–10:45','10:45–11:30','12:30–13:15','13:15–14:00','14:00–14:45','15:00–18:00'];
 
 export default function StudentTimetable() {
+  const { periods } = usePeriods();
   const [term,    setTerm]    = useState({ term:1, year: new Date().getFullYear() });
   const [slots,   setSlots]   = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,14 +44,14 @@ export default function StudentTimetable() {
               </tr>
             </thead>
             <tbody>
-              {PERIODS.map((period, pi) => (
-                <tr key={period} className={pi%2===0?'bg-sand-50':''}>
+              {periods.map((p, pi) => (
+                <tr key={p.period} className={pi%2===0?'bg-sand-50':''}>
                   <td className="py-3 pr-4 text-xs font-medium whitespace-nowrap">
-                    <span className="font-semibold text-charcoal-700">{period}</span>
-                    <br/><span className="text-charcoal-400">{PERIOD_TIMES[pi]}</span>
+                    <span className="font-semibold text-charcoal-700">Period {p.period}</span>
+                    <br/><span className="text-charcoal-400">{formatPeriod(p, true)}</span>
                   </td>
                   {DAYS.map(day => {
-                    const slot = getSlot(day, pi+1);
+                    const slot = getSlot(day, p.period);
                     return (
                       <td key={day} className="py-1 px-2">
                         {slot ? (

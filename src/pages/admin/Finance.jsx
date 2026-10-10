@@ -535,10 +535,12 @@ function InvoicesTab() {
 function CashFlowTab() {
   const [entries,  setEntries]  = useState([]);
   const [loading,  setLoading]  = useState(true);
-  const [modal,    setModal]    = useState(false);
+  const [modal,    setModal]    = useState(null); // null = closed, 'add', or the entry being edited
+  const [error,    setError]    = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  const [form,     setForm]     = useState({ type:'in', category:'', amount:'', description:'', date: new Date().toISOString().split('T')[0] });
+  const todayValue = () => new Date().toISOString().split('T')[0];
+  const [form,     setForm]     = useState({ type:'in', category:'', amount:'', description:'', date: todayValue() });
   const [saving,   setSaving]   = useState(false);
   const [totals,   setTotals]   = useState({ in:0, out:0 });
 
@@ -554,10 +556,22 @@ function CashFlowTab() {
     } catch(e){console.error(e);} finally{setLoading(false);}
   }
   function set(k,v) { setForm(f=>({...f,[k]:v})); }
+  function openAdd() {
+    setForm({ type:'in', category:'', amount:'', description:'', date: todayValue() });
+    setError(''); setModal('add');
+  }
+  function openEdit(r) {
+    setForm({ type: r.type, category: r.category || '', amount: String(r.amount), description: r.description || '', date: String(r.date).slice(0, 10) });
+    setError(''); setModal(r);
+  }
   async function handleSave(e) {
-    e.preventDefault(); setSaving(true);
-    try { await api.post('/finance/cashflow', form); load(); setModal(false); setForm({type:'in',category:'',amount:'',description:'',date:new Date().toISOString().split('T')[0]}); }
-    catch(err){console.error(err);} finally{setSaving(false);}
+    e.preventDefault(); setSaving(true); setError('');
+    try {
+      if (modal === 'add') await api.post('/finance/cashflow', form);
+      else await api.put(`/finance/cash-flow/${modal.id}`, form);
+      load(); setModal(null);
+    }
+    catch(err){ setError(err.response?.data?.error || 'Failed to save the entry.'); } finally{setSaving(false);}
   }
   async function handleDelete() {
     setDeleting(true);
@@ -573,7 +587,10 @@ function CashFlowTab() {
     { key:'description', label:'Description', render: r => r.description||'—' },
     { key:'amount',      label:'Amount',      render: r => <GHSAmount amount={r.amount} className={`font-semibold ${r.type==='in'?'text-green-700':'text-danger'}`}/> },
     { key:'actions',     label:'', render: r => (
-      <button onClick={() => setDeleteConfirm(r)} className="btn-row-icon text-charcoal-400 hover:text-danger" title="Delete"><Trash2 size={16} /></button>
+      <div className="flex gap-1 justify-end">
+        <button onClick={() => openEdit(r)} className="btn-row-icon text-charcoal-400 hover:text-brand-gold" title="Edit"><Pencil size={16} /></button>
+        <button onClick={() => setDeleteConfirm(r)} className="btn-row-icon text-charcoal-400 hover:text-danger" title="Delete"><Trash2 size={16} /></button>
+      </div>
     )},
   ];
 
@@ -585,11 +602,12 @@ function CashFlowTab() {
         <StatCard label="Net Balance"     value={<GHSAmount amount={totals.in - totals.out}/>}       icon={DollarSign}   color="bg-brand-gold/10 text-brand-gold"/>
       </div>
       <div className="flex justify-end mb-4">
-        <button onClick={() => setModal(true)} className="btn-primary flex items-center gap-2"><Plus size={16}/> Add Entry</button>
+        <button onClick={openAdd} className="btn-primary flex items-center gap-2"><Plus size={16}/> Add Entry</button>
       </div>
       {loading ? <TableSkeleton rows={6} cols={4}/> : <Table columns={columns} data={entries} emptyMessage="No cash flow entries yet."/>}
 
-      <Modal open={modal} onClose={() => setModal(false)} title="Add Cash Flow Entry" size="sm">
+      <Modal open={!!modal} onClose={() => setModal(null)} title={modal === 'add' ? 'Add Cash Flow Entry' : 'Edit Cash Flow Entry'} size="sm">
+        {error && <p className="text-sm text-danger bg-red-50 px-4 py-2 rounded-xl mb-4">{error}</p>}
         <form onSubmit={handleSave} className="space-y-4">
           <FormField label="Type">
             <SelectField value={form.type} onChange={e=>set('type',e.target.value)}
@@ -600,8 +618,8 @@ function CashFlowTab() {
           <FormField label="Description"><input className="input-field" value={form.description} onChange={e=>set('description',e.target.value)} placeholder="Optional notes"/></FormField>
           <FormField label="Date" required><input className="input-field" type="date" value={form.date} onChange={e=>set('date',e.target.value)} required/></FormField>
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={() => setModal(false)} className="btn-secondary">Cancel</button>
-            <button type="submit" disabled={saving} className="btn-primary">Add Entry</button>
+            <button type="button" onClick={() => setModal(null)} className="btn-secondary">Cancel</button>
+            <button type="submit" disabled={saving} className="btn-primary">{modal === 'add' ? 'Add Entry' : 'Save changes'}</button>
           </div>
         </form>
       </Modal>

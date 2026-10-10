@@ -1,26 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { CalendarDays } from 'lucide-react';
-import { PageHeader, SelectField, EmptyState } from '../../components/shared';
+import { CalendarDays, Clock } from 'lucide-react';
+import { PageHeader, SelectField, EmptyState, Modal } from '../../components/shared';
 import api from '../../services/api';
+import { usePeriods, formatPeriod, DEFAULT_PERIODS } from '../../services/periods';
 
 const DAYS    = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
-const PERIODS = [1,2,3,4,5,6,7,8,9,10,11];
-
-const PERIOD_LABELS = {
-  1:  '06:00 – 06:45',
-  2:  '06:45 – 07:30',
-  3:  '07:30 – 08:15',
-  4:  '08:15 – 09:00',
-  5:  '09:15 – 10:00',  // after morning break
-  6:  '10:00 – 10:45',
-  7:  '10:45 – 11:30',
-  8:  '12:30 – 13:15',  // after lunch
-  9:  '13:15 – 14:00',
-  10: '14:00 – 14:45',
-  11: '15:00 – 18:00',   // afternoon / remedial / extra-curricular
-};
 
 export default function TimetablePage() {
+  const { periods, reload: reloadPeriods } = usePeriods();
+  const [timesModal, setTimesModal] = useState(false);
+  const [timesForm,  setTimesForm]  = useState([]);
+  const [timesError, setTimesError] = useState('');
+  const [timesSaving, setTimesSaving] = useState(false);
   const [classes,   setClasses]   = useState([]);
   const [teachers,  setTeachers]  = useState([]);
   const [slots,     setSlots]     = useState([]);
@@ -69,9 +60,36 @@ export default function TimetablePage() {
     catch(e) { console.error(e); }
   }
 
+  function openTimes() {
+    setTimesForm(periods.map(p => ({ period: p.period, start_time: p.start_time, end_time: p.end_time })));
+    setTimesError('');
+    setTimesModal(true);
+  }
+  function setTime(period, key, value) {
+    setTimesForm(rows => rows.map(r => r.period === period ? { ...r, [key]: value } : r));
+  }
+  async function saveTimes(e) {
+    e.preventDefault(); setTimesError(''); setTimesSaving(true);
+    try {
+      await api.put('/timetable/periods', { periods: timesForm });
+      await reloadPeriods();
+      setTimesModal(false);
+    } catch (err) {
+      setTimesError(err.response?.data?.error || 'Could not save the period times. Please try again.');
+    } finally { setTimesSaving(false); }
+  }
+
   return (
     <div>
-      <PageHeader title="Timetable" subtitle="Build and manage class schedules." />
+      <PageHeader
+        title="Timetable"
+        subtitle="Build and manage class schedules."
+        action={
+          <button onClick={openTimes} className="btn-secondary flex items-center gap-2">
+            <Clock size={16} /> Edit period times
+          </button>
+        }
+      />
 
       {/* Class selector */}
       <div className="flex items-center gap-3 mb-6">
@@ -96,11 +114,11 @@ export default function TimetablePage() {
               </tr>
             </thead>
             <tbody>
-              {PERIODS.map(period => (
+              {periods.map(({ period, start_time, end_time }) => (
                 <tr key={period} className="border-b border-sand-100">
                   <td className="px-3 py-3 text-xs text-charcoal-500 whitespace-nowrap">
                     <span className="font-semibold text-charcoal-700">P{period}</span><br/>
-                    <span>{PERIOD_LABELS[period]}</span>
+                    <span>{formatPeriod({ start_time, end_time })}</span>
                   </td>
                   {DAYS.map(day => {
                     const slot = getSlot(day, period);
@@ -130,6 +148,36 @@ export default function TimetablePage() {
           </table>
         </div>
       )}
+
+      {/* Edit period times */}
+      <Modal open={timesModal} onClose={() => setTimesModal(false)} title="Edit period times" size="sm">
+        <form onSubmit={saveTimes}>
+          <p className="mb-3 text-xs text-[var(--text-soft)]">
+            These times apply to every class and show on the teacher and student timetables. Change them when the day is different, such as an assembly or a short day, and set them back afterwards.
+          </p>
+          {timesError && <p className="text-sm text-danger bg-red-50 px-4 py-2 rounded-xl mb-3">{timesError}</p>}
+          <div className="space-y-2">
+            {timesForm.map(r => (
+              <div key={r.period} className="flex items-center gap-3">
+                <span className="w-10 text-sm font-semibold text-charcoal-700">P{r.period}</span>
+                <input type="time" required className="input-field" value={r.start_time} onChange={e => setTime(r.period, 'start_time', e.target.value)} aria-label={`Period ${r.period} start`} />
+                <span className="text-charcoal-400">to</span>
+                <input type="time" required className="input-field" value={r.end_time} onChange={e => setTime(r.period, 'end_time', e.target.value)} aria-label={`Period ${r.period} end`} />
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center justify-between gap-3 pt-4">
+            <button type="button" className="text-sm text-brand-gold hover:underline"
+              onClick={() => setTimesForm(DEFAULT_PERIODS.map(p => ({ ...p })))}>Use standard times</button>
+            <div className="flex gap-3">
+              <button type="button" onClick={() => setTimesModal(false)} className="btn-secondary">Cancel</button>
+              <button type="submit" disabled={timesSaving} className="btn-primary flex items-center gap-2">
+                {timesSaving && <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />}Save times
+              </button>
+            </div>
+          </div>
+        </form>
+      </Modal>
 
       {/* Edit cell modal */}
       {editCell && (

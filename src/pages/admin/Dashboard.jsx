@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { GraduationCap, Users, Banknote, BookOpen, TrendingUp, AlertCircle } from 'lucide-react';
 import { StatCard } from '../../components/shared';
 import api from '../../services/api';
@@ -18,30 +18,43 @@ export default function AdminDashboard() {
   const [loading,    setLoading]    = useState(true);
   const [chartLoad,  setChartLoad]  = useState(true);
   const [error,      setError]      = useState(null);
+  const [paymentsError, setPaymentsError] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const [statsRes, payRes] = await Promise.all([
-          api.get('/dashboard/summary'),
-          api.get('/finance/payments?limit=5'),
-        ]);
-        setStats(statsRes.data);
-        setRecent({ payments: payRes.data.payments || [] });
-      } catch (e) {
-        console.error(e);
-        setError('Could not load dashboard data.');
-      } finally {
-        setLoading(false);
-      }
-    })();
+  // The summary and the recent payments load separately, so one failing never blanks the other.
+  const load = useCallback(async () => {
+    setError(null);
+    setPaymentsError(false);
+    const [statsResult, paymentsResult] = await Promise.allSettled([
+      api.get('/dashboard/summary'),
+      api.get('/finance/payments?limit=5'),
+    ]);
+    if (statsResult.status === 'fulfilled') setStats(statsResult.value.data);
+    else { console.error(statsResult.reason); setError('Could not load dashboard data.'); }
+    if (paymentsResult.status === 'fulfilled') setRecent({ payments: paymentsResult.value.data.payments || [] });
+    else { console.error(paymentsResult.reason); setPaymentsError(true); }
+    setLoading(false);
 
-    // Fetch monthly revenue separately so chart can load independently
+    // Monthly revenue loads independently so the chart never holds up the rest
     api.get('/dashboard/revenue-chart')
       .then(r => { if (r.data?.monthly_revenue) setChartData(r.data.monthly_revenue); })
       .catch(console.error)
       .finally(() => setChartLoad(false));
   }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  // If something failed, try again by itself when the connection returns or the tab is reopened
+  const failed = !!error || paymentsError;
+  useEffect(() => {
+    if (!failed) return undefined;
+    const retry = () => { if (document.visibilityState === 'visible') load(); };
+    window.addEventListener('online', retry);
+    document.addEventListener('visibilitychange', retry);
+    return () => {
+      window.removeEventListener('online', retry);
+      document.removeEventListener('visibilitychange', retry);
+    };
+  }, [failed, load]);
 
   const fmt    = v => v == null ? '—' : String(v);
   const fmtGHS = v => v == null ? '—' : `₵${Number(v).toLocaleString('en-GH', { minimumFractionDigits: 2 })}`;
@@ -96,8 +109,10 @@ export default function AdminDashboard() {
       </div>
 
       {error && (
-        <div className="mb-6 flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 font-medium text-red-700">
-          <AlertCircle size={20}/> {error}
+        <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 font-medium text-red-700">
+          <AlertCircle size={20}/>
+          <span className="flex-1">{error} <span className="font-normal">It will retry by itself when your connection returns.</span></span>
+          <button onClick={load} className="rounded-xl border border-red-300 bg-white px-4 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-100">Try again</button>
         </div>
       )}
 
@@ -208,6 +223,11 @@ export default function AdminDashboard() {
 
         {loading ? (
           <div className="space-y-3">{[...Array(4)].map((_,i)=><div key={i} className="h-12 bg-sand-100 rounded-xl animate-pulse"/>)}</div>
+        ) : paymentsError ? (
+          <div className="py-10 text-center text-sm text-[var(--text-soft)]">
+            Could not load recent transactions.{' '}
+            <button onClick={load} className="font-semibold text-[var(--brand-1)] hover:underline">Try again</button>
+          </div>
         ) : recent.payments.length === 0 ? (
           <div className="py-10 text-center text-sm text-[var(--text-soft)]">No transactions found</div>
         ) : (

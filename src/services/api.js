@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { supabase } from './supabase';
+import { installRetry } from './retry';
 
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
@@ -18,6 +19,14 @@ api.interceptors.request.use(async (config) => {
     }
   } catch (_) {}
   return config;
+});
+
+// Recover from an expired token or a brief outage instead of surfacing an error (see retry.js).
+installRetry(api, {
+  refreshToken: async () => {
+    const { data, error } = await supabase.auth.refreshSession();
+    return error ? null : data?.session?.access_token || null;
+  },
 });
 
 export default api;
