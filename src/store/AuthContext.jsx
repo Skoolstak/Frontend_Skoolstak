@@ -19,7 +19,18 @@ export function AuthProvider({ children }) {
       .catch(() => setLoading(false));  // gracefully handle network/config errors
 
     // Listen for auth state changes
+    // The session is shared by every tab of this site. If another tab signs in as a
+    // different user, this tab would keep showing its old page while sending the new
+    // user's token (403s). Reload so the app re-routes for whoever is signed in now.
+    let currentId = null;
+    supabase.auth.getSession().then(({ data: { session } }) => { currentId = session?.user?.id ?? null; });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const nextId = session?.user?.id ?? null;
+      if (document.visibilityState === 'hidden' && currentId && nextId && nextId !== currentId) {
+        window.location.reload();
+        return;
+      }
+      currentId = nextId;
       setUser(session?.user ?? null);
       if (session?.user) fetchProfile(session.user.id);
       else { setProfile(null); setLoading(false); }
