@@ -301,7 +301,7 @@ function InvoicesTab() {
 
       const payRes = await api.post(`/finance/invoices/${payModal.id}/pay`, { ...payForm, reference: receiptUrl });
       const paymentId = payRes.data.payment?.id;
-      setPayDone({ student_name: payModal.student_name, amount: payForm.amount, reference: receiptUrl, method: payForm.method, paymentId });
+      setPayDone({ student_name: payModal.student_name, class_name: payModal.class_name, amount: payForm.amount, reference: receiptUrl, method: payForm.method, paymentId });
       setTimeout(() => setPayDone(null), 5000);
       loadInvoices();
       setPayModal(null);
@@ -313,6 +313,7 @@ function InvoicesTab() {
 
   const columns = [
     { key:'student_name', label:'Student',   render: r => <span className="font-medium">{r.student_name}</span> },
+    { key:'class_name',   label:'Class',     render: r => r.class_name || '—' },
     { key:'fee_type_name',label:'Fee Type' },
     { key:'amount',       label:'Amount',    render: r => <GHSAmount amount={r.amount} /> },
     { key:'due_date',     label:'Due Date',  render: r => new Date(r.due_date).toLocaleDateString('en-GH') },
@@ -395,7 +396,7 @@ function InvoicesTab() {
       {/* Delete invoice confirmation */}
       <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Delete Invoice?" size="sm">
         <p className="text-sm text-charcoal-600 mb-5">
-          This will permanently remove the invoice for <strong>{deleteConfirm?.student_name}</strong> ({deleteConfirm?.fee_type_name}). This cannot be undone.
+          This will permanently remove the invoice for <strong>{deleteConfirm?.student_name}</strong>{deleteConfirm?.class_name ? ` (${deleteConfirm.class_name})` : ''} — {deleteConfirm?.fee_type_name}. This cannot be undone.
         </p>
         <div className="flex justify-end gap-3">
           <button type="button" onClick={() => setDeleteConfirm(null)} className="btn-secondary">Cancel</button>
@@ -412,7 +413,7 @@ function InvoicesTab() {
           <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-green-500 text-white text-lg font-bold">✓</div>
           <div className="flex-1">
             <p className="font-semibold text-green-800">Payment recorded — Marked as Paid</p>
-            <p className="mt-0.5 text-sm text-green-700">{payDone.student_name} · ₵{Number(payDone.amount).toLocaleString()}</p>
+            <p className="mt-0.5 text-sm text-green-700">{payDone.student_name}{payDone.class_name ? ` (${payDone.class_name})` : ''} · ₵{Number(payDone.amount).toLocaleString()}</p>
             {payDone.paymentId && (
               <button
                 onClick={() => openPdf(`/finance/receipt/${payDone.paymentId}/pdf`).catch(console.error)}
@@ -432,7 +433,7 @@ function InvoicesTab() {
         {/* Invoice summary */}
         <div className="mb-5 rounded-xl border border-[rgba(108,85,61,0.12)] bg-[rgba(15,118,110,0.04)] px-4 py-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-soft)] mb-1">Invoice</p>
-          <p className="font-semibold text-[var(--text-strong)]">{payModal?.student_name}</p>
+          <p className="font-semibold text-[var(--text-strong)]">{payModal?.student_name}{payModal?.class_name ? <span className="font-normal text-[var(--text-soft)]"> · {payModal.class_name}</span> : null}</p>
           <p className="text-sm text-[var(--text-body)]">{payModal?.fee_type_name}</p>
           <p className="mt-1 text-xl font-extrabold tracking-tight text-[var(--brand-1)]">
             ₵{Number(payModal?.amount).toLocaleString()} <span className="text-xs font-medium text-[var(--text-soft)]">total due</span>
