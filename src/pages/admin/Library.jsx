@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Plus, Search, AlertTriangle } from 'lucide-react';
+import { BookOpen, Plus, Search, AlertTriangle, Pencil, Trash2 } from 'lucide-react';
 import {
   PageHeader, Table, TableSkeleton, EmptyState,
-  Modal, FormField, SelectField,
+  Modal, FormField, SelectField, ConfirmDialog,
 } from '../../components/shared';
 import api from '../../services/api';
 
@@ -47,6 +47,12 @@ function ItemTab({ filterTypes, singular, plural, showTypeCol, addTypes }) {
   const [form,    setForm]    = useState(EMPTY);
   const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState('');
+  // Delete / multi-delete
+  const [confirm, setConfirm] = useState(null);
+  const [selected, setSelected] = useState([]);
+  const [bulkConfirm, setBulkConfirm] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [notice, setNotice] = useState('');
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, []);
@@ -63,12 +69,48 @@ function ItemTab({ filterTypes, singular, plural, showTypeCol, addTypes }) {
     } catch(err){ setError(err.response?.data?.error || 'Failed to save.'); } finally{setSaving(false);}
   }
 
+  async function handleDelete(id) {
+    setNotice('');
+    try { await api.delete(`/library/books/${id}`); setSelected(prev => prev.filter(x => x !== id)); }
+    catch (e) { setNotice(e.response?.data?.error || `Failed to delete ${singular.toLowerCase()}.`); }
+    load();
+  }
+
+  function toggleSelect(id) {
+    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }
+  function toggleSelectAll() {
+    setSelected(prev => prev.length === filtered.length ? [] : filtered.map(b => b.id));
+  }
+
+  async function handleBulkDelete() {
+    setBulkDeleting(true); setNotice('');
+    try {
+      const { data } = await api.post('/library/books/bulk-delete', { ids: selected });
+      if (data.skipped?.length) {
+        setNotice(`${data.skipped.length} not deleted because they are on loan: ${data.skipped.join(', ')}. Return all copies first.`);
+      }
+    } catch (e) {
+      setNotice(e.response?.data?.error || 'Bulk delete failed.');
+    }
+    setSelected([]);
+    setBulkDeleting(false);
+    load();
+  }
+
   const filtered = books.filter(b =>
     b.title.toLowerCase().includes(search.toLowerCase()) ||
     (b.author||'').toLowerCase().includes(search.toLowerCase())
   );
 
   const columns = [
+    { key:'select', label:(
+        <input type="checkbox" className="w-4 h-4 accent-teal-600 cursor-pointer align-middle" title="Select all"
+          checked={filtered.length > 0 && selected.length === filtered.length} onChange={toggleSelectAll}/>
+      ), render:r=>(
+        <input type="checkbox" className="w-4 h-4 accent-teal-600 cursor-pointer align-middle"
+          checked={selected.includes(r.id)} onChange={()=>toggleSelect(r.id)}/>
+    )},
     { key:'title',     label:'Title',   render:r=><span className="font-medium">{r.title}</span> },
     { key:'author',    label:'Author / Ref.',  render:r=>r.author||'—' },
     ...(showTypeCol ? [{ key:'book_type', label:'Type', render:r=>BOOK_TYPES.find(t=>t.value===r.book_type)?.label||r.book_type }] : []),
@@ -77,7 +119,10 @@ function ItemTab({ filterTypes, singular, plural, showTypeCol, addTypes }) {
       <span className={r.available<=2?'text-danger font-semibold flex items-center gap-1':''}>{r.available<=2 && <AlertTriangle size={13}/>}{r.available}</span>
     )},
     { key:'actions', label:'', render:r=>(
-      <button onClick={()=>openEdit(r)} className="text-xs text-brand-gold hover:underline">Edit</button>
+      <div className="flex gap-1">
+        <button onClick={()=>openEdit(r)} className="btn-row-icon text-charcoal-400 hover:text-brand-gold" title="Edit"><Pencil size={16}/></button>
+        <button onClick={()=>setConfirm(r)} className="btn-row-icon text-charcoal-400 hover:text-danger" title="Delete"><Trash2 size={16}/></button>
+      </div>
     )},
   ];
 
@@ -88,11 +133,39 @@ function ItemTab({ filterTypes, singular, plural, showTypeCol, addTypes }) {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal-400"/>
           <input type="text" placeholder={`Search ${plural}…`} value={search} onChange={e=>setSearch(e.target.value)} className="input-field pl-9"/>
         </div>
-        <button onClick={openAdd} className="btn-primary flex items-center gap-2"><Plus size={16}/> Add {singular}</button>
+        <div className="flex items-center gap-2">
+          {selected.length > 0 && (
+            <button onClick={()=>setBulkConfirm(true)}
+              className="flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold bg-danger text-white hover:bg-red-800 transition-all active:scale-95">
+              <Trash2 size={15}/> Delete {selected.length} selected
+            </button>
+          )}
+          <button onClick={openAdd} className="btn-primary flex items-center gap-2"><Plus size={16}/> Add {singular}</button>
+        </div>
       </div>
+      {notice && <p className="text-sm text-danger bg-red-50 px-4 py-2 rounded-xl mb-4">{notice}</p>}
       {loading ? <TableSkeleton rows={6} cols={5}/> : filtered.length===0
         ? <EmptyState icon={BookOpen} title={`No ${plural} yet`} description={`Add your first ${singular.toLowerCase()}.`} action={<button onClick={openAdd} className="btn-primary">Add {singular}</button>}/>
         : <Table columns={columns} data={filtered}/>}
+
+      <ConfirmDialog
+        open={!!confirm}
+        title={`Delete ${singular}`}
+        message={`Delete "${confirm?.title}"? Its loan history will be removed too.`}
+        confirmLabel="Delete"
+        danger
+        onConfirm={() => handleDelete(confirm.id)}
+        onClose={() => setConfirm(null)}
+      />
+      <ConfirmDialog
+        open={bulkConfirm}
+        title={`Delete ${selected.length} ${selected.length !== 1 ? plural : singular.toLowerCase()}`}
+        message={`This will permanently delete ${selected.length} selected ${selected.length !== 1 ? plural : singular.toLowerCase()} and their loan history. Items currently on loan are skipped.`}
+        confirmLabel={bulkDeleting ? 'Deleting…' : `Delete ${selected.length}`}
+        danger
+        onConfirm={handleBulkDelete}
+        onClose={() => setBulkConfirm(false)}
+      />
 
       <Modal open={!!modal} onClose={()=>setModal(null)} title={modal==='add'?`Add ${singular}`:`Edit ${singular}`} size="sm">
         <form onSubmit={handleSave} className="space-y-4">
