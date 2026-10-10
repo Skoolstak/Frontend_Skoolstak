@@ -1,0 +1,19 @@
+# Single-page app routing: serve index.html for any path that is not a real file or folder,
+# so refreshing /schooladmin, /teacher-login, /admin/students etc. loads the app instead of a 404.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_URI} !^/api/
+  RewriteRule . /index.html [L]
+</IfModule>
+
+# Always revalidate the page shell and service worker so new deployments show up immediately.
+# Hashed files under /static/ are safe to cache and are left alone.
+<IfModule mod_headers.c>
+  <FilesMatch "^(index\.html|service-worker\.js|asset-manifest\.json)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+</IfModule>
