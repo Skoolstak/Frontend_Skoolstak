@@ -6,6 +6,13 @@ import {
 } from '../../components/shared';
 import api, { openPdf } from '../../services/api';
 
+const FEE_FREQUENCIES = [
+  { value: 'daily',   label: 'Daily' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'termly',  label: 'Termly' },
+  { value: 'once',    label: 'One-off' },
+];
+
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -54,7 +61,7 @@ function FeeTypesTab() {
   const columns = [
     { key:'name',      label:'Fee Type',   render: r => <span className="font-medium">{r.name}</span> },
     { key:'amount',    label:'Amount',     render: r => <GHSAmount amount={r.amount} className="font-semibold" /> },
-    { key:'frequency', label:'Frequency',  render: r => r.frequency },
+    { key:'frequency', label:'Frequency',  render: r => FEE_FREQUENCIES.find(f => f.value === r.frequency)?.label || r.frequency },
     { key:'actions',   label:'', render: r => (
       <div className="flex gap-1 justify-end">
         <button onClick={() => openEdit(r)} className="btn-row-icon text-charcoal-400 hover:text-brand-gold" title="Edit"><Pencil size={16} /></button>
@@ -75,7 +82,7 @@ function FeeTypesTab() {
           <FormField label="Amount (₵)" required><input className="input-field" type="number" step="0.01" min="0" value={form.amount} onChange={e=>set('amount',e.target.value)} required/></FormField>
           <FormField label="Frequency">
             <SelectField value={form.frequency} onChange={e=>set('frequency',e.target.value)}
-              options={[{value:'termly',label:'Termly'},{value:'monthly',label:'Monthly'},{value:'once',label:'One-off'}]} />
+              options={FEE_FREQUENCIES} />
           </FormField>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setModal(false)} className="btn-secondary">Cancel</button>
@@ -93,7 +100,7 @@ function FeeTypesTab() {
           <FormField label="Amount (₵)" required><input className="input-field" type="number" step="0.01" min="0" value={form.amount} onChange={e=>set('amount',e.target.value)} required/></FormField>
           <FormField label="Frequency">
             <SelectField value={form.frequency} onChange={e=>set('frequency',e.target.value)}
-              options={[{value:'termly',label:'Termly'},{value:'monthly',label:'Monthly'},{value:'once',label:'One-off'}]} />
+              options={FEE_FREQUENCIES} />
           </FormField>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setEditModal(null)} className="btn-secondary">Cancel</button>
