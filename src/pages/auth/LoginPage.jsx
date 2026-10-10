@@ -4,10 +4,9 @@ import { useAuth } from '../../store/AuthContext';
 import { ROLE_HOME } from '../../utils/ProtectedRoute';
 import { Eye, EyeOff, School } from 'lucide-react';
 import api from '../../services/api';
-import { supabase } from '../../services/supabase';
 
 export default function LoginPage() {
-  const { signIn } = useAuth();
+  const { signIn, signInWithSession } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -64,18 +63,14 @@ export default function LoginPage() {
         
         // Use Supabase's built-in session management (secure)
         if (res.data.session) {
-          // Let Supabase SDK handle the session securely
-          await supabase.auth.setSession({
-            access_token: res.data.session.access_token,
-            refresh_token: res.data.session.refresh_token,
-          });
-          
-          // Navigate to appropriate dashboard
+          const result = await signInWithSession(res.data.session);
+          const role = result.profile?.role || res.data.role;
           const roleMap = {
             student: '/student/academic-records',
             teacher: '/teacher',
           };
-          navigate(roleMap[res.data.role] || '/admin', { replace: true });
+          const from = location.state?.from?.pathname;
+          navigate(from || roleMap[role] || ROLE_HOME[role] || '/admin', { replace: true });
         }
       } else {
         // Email-based login (school admins)

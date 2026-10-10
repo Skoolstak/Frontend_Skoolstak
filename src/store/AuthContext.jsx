@@ -32,7 +32,11 @@ export function AuthProvider({ children }) {
       }
       currentId = nextId;
       setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
+      if (session?.user) {
+        // Hold routing until the role is known, otherwise a fresh login is bounced to a login page
+        setLoading(true);
+        setTimeout(() => fetchProfile(session.user.id), 0);
+      }
       else { setProfile(null); setLoading(false); }
     });
 
@@ -58,6 +62,17 @@ export function AuthProvider({ children }) {
     return { ...data, profile: signedInProfile };
   }
 
+  // Used by the teacher/student ID login: the server has already verified the password and returns a session
+  async function signInWithSession(session) {
+    const { data, error } = await supabase.auth.setSession({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+    });
+    if (error) throw error;
+    const signedInProfile = await fetchProfile(data.user.id);
+    return { ...data, profile: signedInProfile };
+  }
+
   async function signUp(email, password) {
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) throw error;
@@ -71,7 +86,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, profile, loading, signIn, signInWithSession, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

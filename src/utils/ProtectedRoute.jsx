@@ -15,9 +15,17 @@ export const ROLE_HOME = {
  * Wraps a route so only authenticated users with the right role(s) can access it.
  * allowedRoles: string[] — omit to allow any authenticated role
  */
+// Send signed-out visitors to the login page for the portal they were trying to open
+function loginPathFor(pathname) {
+  if (pathname.startsWith('/teacher')) return '/teacher-login';
+  if (pathname.startsWith('/admin') || pathname.startsWith('/superadmin')) return '/schooladmin';
+  return '/login';
+}
+
 export function ProtectedRoute({ children, allowedRoles }) {
   const { user, profile, loading } = useAuth();
   const location = useLocation();
+  const loginPath = loginPathFor(location.pathname);
 
   if (loading) {
     return (
@@ -28,12 +36,12 @@ export function ProtectedRoute({ children, allowedRoles }) {
   }
 
   if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to={loginPath} state={{ from: location }} replace />;
   }
 
   // No profile row for this auth user — can't verify role, so deny access.
   if (allowedRoles && !profile) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to={loginPath} state={{ from: location }} replace />;
   }
 
   if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
