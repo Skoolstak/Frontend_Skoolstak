@@ -2,25 +2,31 @@ import React, { useState, useEffect } from 'react';
 import { CalendarCheck, Banknote, AlertCircle } from 'lucide-react';
 import { PageHeader, StatCard, GHSAmount } from '../../components/shared';
 import api from '../../services/api';
+import { useParentChild, ChildPicker } from '../../components/ChildPicker';
 
 export default function ParentDashboard() {
+  const { children, childId, setChildId, ready } = useParentChild();
   const [attendance, setAttendance] = useState(null);
   const [fees, setFees] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!ready) return;
+    setLoading(true);
+    const params = { student_id: childId };
     Promise.all([
-      api.get('/parent/attendance'),
-      api.get('/parent/fees'),
+      api.get('/parent/attendance', { params }),
+      api.get('/parent/fees', { params }),
     ]).then(([a, f]) => {
       setAttendance(a.data.summary);
       setFees(f.data.summary);
     }).catch(console.error).finally(() => setLoading(false));
-  }, []);
+  }, [ready, childId]);
 
   return (
     <div>
       <PageHeader title="Parent Dashboard" subtitle="Your child's attendance and fee summary." />
+      <ChildPicker kids={children} childId={childId} onChange={setChildId} />
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <StatCard loading={loading} label="Attendance Rate" value={attendance ? `${attendance.rate}%` : '—'} icon={CalendarCheck} />
         <StatCard loading={loading} label="Days Present" value={attendance?.present ?? '—'} icon={CalendarCheck} />

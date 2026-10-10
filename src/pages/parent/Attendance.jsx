@@ -2,18 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { CalendarCheck } from 'lucide-react';
 import { PageHeader, Table, TableSkeleton, StatusBadge, StatCard, EmptyState } from '../../components/shared';
 import api from '../../services/api';
+import { useParentChild, ChildPicker } from '../../components/ChildPicker';
 
 export default function ParentAttendance() {
+  const { children, childId, setChildId, ready } = useParentChild();
   const [records, setRecords] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/parent/attendance')
+    if (!ready) return;
+    setLoading(true);
+    api.get('/parent/attendance', { params: { student_id: childId } })
       .then(r => { setRecords(r.data.records || []); setSummary(r.data.summary); })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [ready, childId]);
 
   const columns = [
     { key: 'date',   label: 'Date',   render: r => new Date(r.date).toLocaleDateString('en-GH') },
@@ -24,6 +28,7 @@ export default function ParentAttendance() {
   return (
     <div>
       <PageHeader title="Attendance" subtitle="Your child's attendance record." icon={CalendarCheck} />
+      <ChildPicker kids={children} childId={childId} onChange={setChildId} />
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
         <StatCard loading={loading} label="Attendance Rate" value={summary ? `${summary.rate}%` : '—'} icon={CalendarCheck} />
         <StatCard loading={loading} label="Present" value={summary?.present ?? '—'} icon={CalendarCheck} />

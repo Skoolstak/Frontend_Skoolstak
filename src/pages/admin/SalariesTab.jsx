@@ -176,13 +176,24 @@ function SalaryManager({ person, month, onClose, onChanged }) {
 
   const [raise, setRaise] = useState({ amount: '', effective_month: month, reason: '' });
   const [adj, setAdj] = useState({ kind: 'allowance', label: '', amount: '', start_month: month, repeats: false, end_month: '' });
+  const [bank, setBank] = useState({ bank_name: '', account_number: '' });
+  const [bankSaved, setBankSaved] = useState(false);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { loadDetail(); }, []);
-  async function loadDetail() {
-    try { const { data } = await api.get(`/finance/salaries/${person.id}`); setDetail(data); }
+  useEffect(() => { loadDetail(true); }, []);
+  async function loadDetail(first) {
+    try {
+      const { data } = await api.get(`/finance/salaries/${person.id}`);
+      setDetail(data);
+      if (first && data.bank) setBank(data.bank);
+    }
     catch (e) { setError(e.response?.data?.error || 'Failed to load pay details.'); }
   }
+  const saveBank = (e) => {
+    e.preventDefault();
+    setBankSaved(false);
+    run(() => api.put(`/finance/salaries/${person.id}/bank`, bank), () => setBankSaved(true));
+  };
   async function run(action, afterSuccess) {
     setError(''); setBusy(true);
     try { await action(); await loadDetail(); onChanged(); if (afterSuccess) afterSuccess(); }
@@ -224,6 +235,17 @@ function SalaryManager({ person, month, onClose, onChanged }) {
         {!detail && !error && <p className={hint}>Loading…</p>}
         {detail && (
           <div className="space-y-8">
+            {/* Where the salary is paid; printed on the bank payroll list */}
+            <section>
+              <h3 className={sectionTitle}>Bank details</h3>
+              <p className={`${hint} mb-2`}>Shown on the payroll list you give the bank. Only school admins can see this.</p>
+              <form onSubmit={saveBank} className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto]">
+                <FormField label="Bank"><input className="input-field" maxLength={80} value={bank.bank_name} onChange={e => { setBankSaved(false); setBank(b => ({ ...b, bank_name: e.target.value })); }} placeholder="E.g. GCB Bank" /></FormField>
+                <FormField label="Account number"><input className="input-field" inputMode="numeric" maxLength={40} value={bank.account_number} onChange={e => { setBankSaved(false); setBank(b => ({ ...b, account_number: e.target.value })); }} placeholder="E.g. 1234567890123" /></FormField>
+                <div className="flex items-end"><button type="submit" disabled={busy} className="btn-primary w-full">{bankSaved ? 'Saved ✓' : 'Save bank details'}</button></div>
+              </form>
+            </section>
+
             {/* Basic salary over time */}
             <section>
               <h3 className={sectionTitle}>Basic salary</h3>

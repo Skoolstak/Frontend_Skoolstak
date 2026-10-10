@@ -78,11 +78,7 @@ export default function TeacherAttendance() {
     setSaving(true);
     setMessage({ type: '', text: '' });
 
-    // Get current term and year
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth() + 1;
-    const currentTerm = Math.ceil(currentMonth / 4); // Term 1-3
-
+    // The server works out the term and academic year from the date
     const records = students.map(student => ({
       student_id: student.id,
       status: (attendance[student.id] || 'Absent').toLowerCase(), // Convert to lowercase
@@ -94,8 +90,6 @@ export default function TeacherAttendance() {
         class_id: selectedClass,
         date: selectedDate,
         records,
-        term: currentTerm,
-        academic_year: currentYear,
       });
       setMessage({ type: 'success', text: 'Attendance saved successfully!' });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);

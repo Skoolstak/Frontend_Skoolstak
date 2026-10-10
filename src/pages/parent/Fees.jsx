@@ -2,18 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { Banknote } from 'lucide-react';
 import { PageHeader, Table, TableSkeleton, StatusBadge, GHSAmount, EmptyState } from '../../components/shared';
 import api from '../../services/api';
+import { useParentChild, ChildPicker } from '../../components/ChildPicker';
 
 export default function ParentFees() {
+  const { children, childId, setChildId, ready } = useParentChild();
   const [invoices, setInvoices] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/parent/fees')
+    if (!ready) return;
+    setLoading(true);
+    api.get('/parent/fees', { params: { student_id: childId } })
       .then(r => { setInvoices(r.data.invoices || []); setSummary(r.data.summary); })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [ready, childId]);
 
   const columns = [
     { key: 'fee_type_name', label: 'Fee Type' },
@@ -27,6 +31,7 @@ export default function ParentFees() {
   return (
     <div>
       <PageHeader title="Fees" subtitle="Your child's invoices and balances." icon={Banknote} />
+      <ChildPicker kids={children} childId={childId} onChange={setChildId} />
       {summary && (
         <p className="mb-4 text-sm text-charcoal-500">
           Outstanding balance: <strong className="text-danger"><GHSAmount amount={summary.total_outstanding} /></strong>

@@ -6,7 +6,9 @@ import {
 } from '../../components/shared';
 import api from '../../services/api';
 
-const EMPTY = { class_id: '', subject_id: '', title: '', description: '', due_date: '', max_score: '', term: String(Math.ceil((new Date().getMonth() + 1) / 4)), academic_year: String(new Date().getFullYear()) };
+import { currentTermYear } from '../../services/term';
+const _cty = currentTermYear();
+const EMPTY = { class_id: '', subject_id: '', title: '', description: '', due_date: '', max_score: '', term: String(_cty.term), academic_year: String(_cty.year) };
 
 export default function TeacherAssignments() {
   const [assignments, setAssignments] = useState([]);

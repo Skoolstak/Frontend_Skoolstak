@@ -36,4 +36,17 @@ if (navigator.onLine) {
   syncOfflineData().catch(() => {});
 }
 
+// Free hosting puts the server to sleep when idle and the first request then takes up to a minute.
+// Wake it as soon as the app opens, and again when the tab comes back after a long break, so it is
+// already awake by the time someone has typed their password or opens a page.
+const healthUrl = (process.env.REACT_APP_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '') + '/health';
+let lastWarm = 0;
+function warmServer() {
+  if (Date.now() - lastWarm < 4 * 60 * 1000) return;
+  lastWarm = Date.now();
+  fetch(healthUrl, { mode: 'no-cors', cache: 'no-store' }).catch(() => {});
+}
+warmServer();
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') warmServer(); });
+
 reportWebVitals();
