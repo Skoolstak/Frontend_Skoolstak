@@ -8,6 +8,7 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const isId = /^(stu|tea)-/i.test(email.trim());
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -15,7 +16,7 @@ export default function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      await api.post('/auth/forgot-password', { email: email.trim() });
+      await api.post('/auth/forgot-password', { identifier: email.trim() });
       setSuccess(true);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to send reset link. Please try again.');
@@ -38,11 +39,15 @@ export default function ForgotPasswordPage() {
           <div className="card text-center">
             <Mail size={48} className="mx-auto text-brand-gold mb-4" />
             <p className="text-charcoal-700 mb-6">
-              We've sent a password reset link to <strong>{email}</strong>
+              If an email address is on file for <strong>{email}</strong>, we've sent a password reset link to it.
             </p>
             <p className="text-sm text-charcoal-500 mb-6">
               Please check your inbox and click the link to reset your password. 
               The link will expire in 1 hour.
+            </p>
+            <p className="text-sm text-charcoal-500 mb-6">
+              Students and teachers whose account has no email address cannot receive a link — ask your
+              school administrator to reset your password. It will be set back to your ID.
             </p>
             <Link 
               to="/login" 
@@ -74,7 +79,7 @@ export default function ForgotPasswordPage() {
             <School className="w-7 h-7 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-charcoal-900">Reset password</h1>
-          <p className="text-sm text-charcoal-500 mt-1">Enter your email to receive a reset link</p>
+          <p className="text-sm text-charcoal-500 mt-1">Enter your email address or your ID (STU-… / TEA-…)</p>
         </div>
 
         <div className="card">
@@ -86,17 +91,22 @@ export default function ForgotPasswordPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="label" htmlFor="email">Email address</label>
+              <label className="label" htmlFor="email">Email address or ID</label>
               <input
                 id="email"
-                type="email"
-                autoComplete="email"
+                type="text"
+                autoComplete="username"
                 required
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 className="input-field"
-                placeholder="your@school.edu.gh"
+                placeholder="your@school.edu.gh or TEA-2026-001"
               />
+              {isId && (
+                <p className="mt-2 text-xs text-charcoal-500">
+                  A link is only sent if your account has an email address. Otherwise your school administrator can reset it for you.
+                </p>
+              )}
             </div>
 
             <button

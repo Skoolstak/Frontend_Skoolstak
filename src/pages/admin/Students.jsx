@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GraduationCap, Plus, Search, Pencil, Trash2, BookOpen, ChevronDown, ChevronUp, Upload, FileSpreadsheet, Camera } from 'lucide-react';
+import { GraduationCap, Plus, Search, Pencil, Trash2, BookOpen, ChevronDown, ChevronUp, Upload, FileSpreadsheet, Camera, KeyRound } from 'lucide-react';
 import {
   PageHeader, Table, TableSkeleton, StatusBadge, AvatarThumb,
   Modal, FormField, SelectField, EmptyState, ConfirmDialog, ImportGuide, ImportResult,
@@ -217,6 +217,16 @@ export default function StudentsPage() {
     }
   }
 
+  async function handleResetLogin(student) {
+    if (!window.confirm(`Reset ${student.first_name}'s login? Their password will become their student ID.`)) return;
+    try {
+      const { data } = await api.post(`/students/${student.id}/reset-login`);
+      window.alert(data.message);
+    } catch (err) {
+      window.alert(err.response?.data?.error || 'Unable to reset the student login.');
+    }
+  }
+
   async function handleDelete(id) {
     try { await api.delete(`/students/${id}`); load(); }
     catch(e) { console.error(e); }
@@ -380,6 +390,7 @@ export default function StudentsPage() {
       <div className="flex gap-1">
         <button onClick={() => openPhotoUpload(r)} className="btn-row-icon text-charcoal-400 hover:text-purple-500" title="Upload Photo"><Camera size={16} /></button>
         <button onClick={() => openHistory(r)} className="btn-row-icon text-charcoal-400 hover:text-blue-500" title="Academic History"><BookOpen size={16} /></button>
+        <button onClick={() => handleResetLogin(r)} className="btn-row-icon text-charcoal-400 hover:text-brand-gold" title="Reset student login (password becomes the student ID)"><KeyRound size={16} /></button>
         <button onClick={() => openEdit(r)} className="btn-row-icon text-charcoal-400 hover:text-brand-gold" title="Edit"><Pencil size={16} /></button>
         {r.status !== 'alumni' && (
           <button onClick={() => { setGradConfirm(r); setGradYear(String(new Date().getFullYear())); }} className="btn-row-icon text-charcoal-400 hover:text-green-600" title="Graduate"><GraduationCap size={16} /></button>

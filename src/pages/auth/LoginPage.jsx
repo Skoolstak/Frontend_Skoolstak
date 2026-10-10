@@ -222,8 +222,8 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Forgot password */}
-            {loginMethod === 'email' && (
+            {/* Forgot password (school admins, teachers and students) */}
+            {(
               <div className="flex justify-end">
                 <Link
                   to="/forgot-password"
